@@ -32,6 +32,16 @@ from learning import (
     RefinementRecord,
     AUTO_LEARN_THRESHOLD
 )
+from trace_learning import (
+    get_trace_system,
+    TraceLearningSystem,
+    TraceRecord,
+    MusicContext,
+    ImplicitSignals,
+    AgentDecision,
+    AgentMetrics,
+    LearningInsight
+)
 
 load_dotenv()
 
@@ -58,6 +68,10 @@ class LoopIteration:
     examples_used: int = 0
     user_rating: Optional[int] = None
     score_details: Optional[dict] = None
+    # Trace learning fields
+    trace_id: Optional[str] = None
+    music_context: Optional[dict] = None
+    agent_decisions: list = field(default_factory=list)
 
     def to_dict(self) -> dict:
         """Convert to dict, ensuring all values are JSON-serializable."""
@@ -76,7 +90,10 @@ class LoopIteration:
             "added_to_learning": self.added_to_learning,
             "examples_used": self.examples_used,
             "user_rating": self.user_rating,
-            "score_details": dict(self.score_details) if self.score_details else None
+            "score_details": dict(self.score_details) if self.score_details else None,
+            "trace_id": self.trace_id,
+            "music_context": self.music_context,
+            "agent_decisions": self.agent_decisions
         }
 
 
@@ -163,10 +180,12 @@ Be specific and actionable. Each iteration should meaningfully improve the promp
         self.llm = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         self.audio_gen = ReplicateMusicGenerator(output_dir=str(self.output_dir))
 
-        # Learning system
+        # Learning systems
         self.learning: Optional[LearningSystem] = None
+        self.trace_learning: Optional[TraceLearningSystem] = None
         if enable_learning:
             self.learning = get_learning_system()
+            self.trace_learning = get_trace_system()
 
         # Storage for iterations
         self.iterations: list[LoopIteration] = []
@@ -293,6 +312,21 @@ Respond with JSON only. No markdown, no explanation outside the JSON."""
             self._current_examples = self.learning.retrieve_similar_examples(initial_prompt)
             self._examples_text = self.learning.format_examples_for_prompt(self._current_examples)
             print(f"   📚 Found {len(self._current_examples)} relevant examples")
+            
+            # Log pattern retrieval
+            if self._current_examples:
+                from local_storage import log_learning_event
+                pattern_ids = [ex.id for ex in self._current_examples]
+                log_learning_event(
+                    event_type="pattern_retrieved",
+                    session_id=self.session_id,
+                    prompt=initial_prompt,
+                    details={
+                        "patterns_retrieved": len(self._current_examples),
+                        "pattern_ids": pattern_ids,
+                        "pattern_scores": [ex.auto_score for ex in self._current_examples]
+                    }
+                )
 
         print("="*70 + "\n")
 
@@ -306,6 +340,21 @@ Respond with JSON only. No markdown, no explanation outside the JSON."""
             # Phase 1: Critique and Refine
             print("\n📝 Phase 1: Critiquing and refining prompt...")
             refinement = self.refine_prompt(current_prompt, i)
+            
+            # Log that learned patterns were used in this iteration
+            if self._current_examples and self.enable_learning:
+                from local_storage import log_learning_event
+                log_learning_event(
+                    event_type="pattern_used",
+                    session_id=self.session_id,
+                    prompt=current_prompt,
+                    details={
+                        "iteration": i + 1,
+                        "patterns_used": len(self._current_examples),
+                        "refined_prompt": refinement['refined_prompt'],
+                        "improvement_notes": refinement['improvement_notes']
+                    }
+                )
 
             print(f"   💭 Critique: {refinement['critique']}")
             print(f"   ✨ Refined: {refinement['refined_prompt']}")
@@ -320,6 +369,9 @@ Respond with JSON only. No markdown, no explanation outside the JSON."""
             score_details = None
             record_id = None
             added_to_learning = False
+            trace_id = None
+            music_context_dict = None
+            agent_decisions_list = []
 
             if self.enable_learning and self.learning:
                 print("\n🧠 Phase 3: Scoring and learning...")
@@ -356,6 +408,45 @@ Respond with JSON only. No markdown, no explanation outside the JSON."""
                     content = f"{current_prompt}|{refinement['refined_prompt']}|{time.time()}"
                     record_id = hashlib.md5(content.encode()).hexdigest()[:12]
 
+                # Record trace with trace_learning system
+                if self.trace_learning:
+                    # Simulate agent decisions (in real system, these would come from actual agents)
+                    agent_decisions = [
+                        AgentDecision(
+                            agent_name="prompt_refiner",
+                            decision_type="refinement",
+                            parameters={
+                                "critique_focus": "specificity",
+                                "refinement_strategy": "additive"
+                            },
+                            confidence=min(auto_score / 100, 1.0),
+                            success=auto_score >= 60,
+                            feedback_score=auto_score
+                        )
+                    ]
+                    agent_decisions_list = [d.to_dict() for d in agent_decisions]
+
+                    trace_id = self.trace_learning.record_trace(
+                        trace_id=f"{self.session_id}_iter_{i}",
+                        session_id=self.session_id,
+                        initial_prompt=current_prompt,
+                        refined_prompt=refinement['refined_prompt'],
+                        critique=refinement['critique'],
+                        improvement_notes=refinement['improvement_notes'],
+                        auto_score=auto_score,
+                        audio_path=audio_result['audio_path'],
+                        generation_time=audio_result['generation_time'],
+                        agent_decisions=agent_decisions
+                    )
+
+                    if trace_id:
+                        # Get the music context for UI display
+                        music_context = self.trace_learning.extract_music_context(refinement['refined_prompt'])
+                        music_context_dict = music_context.to_dict()
+                        print(f"   📝 Trace recorded (ID: {trace_id})")
+                        if music_context.genre:
+                            print(f"   🎸 Detected: {music_context.genre} | {music_context.mood or 'N/A'}")
+
             # Store iteration
             iteration_data = LoopIteration(
                 iteration_num=i,
@@ -371,7 +462,10 @@ Respond with JSON only. No markdown, no explanation outside the JSON."""
                 auto_score=auto_score,
                 added_to_learning=added_to_learning,
                 examples_used=len(self._current_examples),
-                score_details=score_details
+                score_details=score_details,
+                trace_id=trace_id,
+                music_context=music_context_dict,
+                agent_decisions=agent_decisions_list
             )
             self.iterations.append(iteration_data)
 
@@ -434,6 +528,32 @@ Respond with JSON only. No markdown, no explanation outside the JSON."""
         if success:
             iteration.user_rating = rating
 
+            # Save to local storage for ratings tab
+            from local_storage import save_user_rating
+            try:
+                save_user_rating(
+                    pattern_id=iteration.record_id or f"iter_{iteration.iteration_num}",
+                    rating=rating,
+                    session_id=self.session_id,
+                    refined_prompt=iteration.refined_prompt,
+                    auto_score=iteration.auto_score
+                )
+            except Exception as e:
+                print(f"Warning: Could not save rating to local storage: {e}")
+
+            # Also update trace record with user rating
+            if iteration.trace_id and self.trace_learning:
+                import weave
+                traces = self.trace_learning._get_traces()
+                for trace_data in traces:
+                    if trace_data.get('trace_id') == iteration.trace_id:
+                        trace_data['user_rating'] = rating
+                        # Re-save dataset
+                        dataset = weave.Dataset(name=self.trace_learning.TRACE_DATASET, rows=traces)
+                        weave.publish(dataset)
+                        self.trace_learning._trace_cache = None
+                        break
+
             # If high rating and not already learned, try to add it
             if rating >= 4 and not iteration.added_to_learning:
                 record_id = self.learning.learn_from_refinement(
@@ -447,8 +567,38 @@ Respond with JSON only. No markdown, no explanation outside the JSON."""
                 )
                 if record_id:
                     iteration.added_to_learning = True
+                    # Log that a pattern was learned
+                    from local_storage import log_learning_event
+                    log_learning_event(
+                        event_type="pattern_learned",
+                        session_id=self.session_id,
+                        prompt=iteration.input_prompt,
+                        details={
+                            "record_id": record_id,
+                            "refined_prompt": iteration.refined_prompt,
+                            "auto_score": iteration.auto_score,
+                            "user_rating": rating
+                        }
+                    )
 
         return success
+
+    def record_implicit_signal(self, trace_id: str, signal_type: str, value: int = 1) -> bool:
+        """
+        Record an implicit user signal (replay, save, export, edit).
+
+        Args:
+            trace_id: ID of the trace to update
+            signal_type: Type of signal (replay, save, export, edit, regeneration)
+            value: Amount to increment (default 1)
+
+        Returns:
+            True if successful
+        """
+        if not self.enable_learning or not self.trace_learning:
+            return False
+
+        return self.trace_learning.record_implicit_signal(trace_id, signal_type, value)
 
     def get_learning_metrics(self) -> Optional[IntelligenceMetrics]:
         """Get intelligence dashboard metrics."""
@@ -456,6 +606,20 @@ Respond with JSON only. No markdown, no explanation outside the JSON."""
             return None
 
         return self.learning.get_intelligence_metrics()
+
+    def get_agent_metrics(self) -> Optional[dict]:
+        """Get agent performance metrics from trace learning."""
+        if not self.enable_learning or not self.trace_learning:
+            return None
+
+        return self.trace_learning.get_agent_metrics()
+
+    def get_learning_insights(self, lookback_hours: int = 24) -> list:
+        """Get learning insights from recent traces."""
+        if not self.enable_learning or not self.trace_learning:
+            return []
+
+        return self.trace_learning.generate_insights(lookback_hours)
 
     def get_results_json(self) -> str:
         """Export all iterations as JSON."""
