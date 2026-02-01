@@ -1,0 +1,30 @@
+# Environment
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Outputs
+loopism_outputs/
+test_outputs/
+test_loopism_outputs/
+*.wav
+*.mp3
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Weave/W&B
+wandb/
+.weave/
+
+# Cloned repos (optional - remove these lines if you want to include them)
+# deep-research/
+# recursive-agents/
