@@ -16,6 +16,7 @@ STORAGE_DIR = Path("learning_data")
 PATTERNS_FILE = STORAGE_DIR / "learned_patterns.json"
 RATINGS_FILE = STORAGE_DIR / "user_ratings.json"
 SESSIONS_FILE = STORAGE_DIR / "sessions.json"
+LEARNING_LOG_FILE = STORAGE_DIR / "learning_history.json"
 
 # Ensure storage directory exists
 STORAGE_DIR.mkdir(parents=True, exist_ok=True)
@@ -183,6 +184,44 @@ def save_user_rating(
 def get_all_ratings() -> list:
     """Get all user ratings."""
     return _load_json(RATINGS_FILE)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LEARNING HISTORY LOG
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def log_learning_event(
+    event_type: str,  # "pattern_retrieved", "pattern_used", "pattern_learned", "rating_submitted"
+    session_id: str,
+    prompt: str,
+    details: dict = None
+) -> str:
+    """Log a learning event to the history."""
+    logs = _load_json(LEARNING_LOG_FILE)
+    
+    log_id = f"log_{int(time.time() * 1000)}"
+    
+    log_entry = {
+        "id": log_id,
+        "event_type": event_type,
+        "session_id": session_id,
+        "prompt": prompt,
+        "timestamp": datetime.now().isoformat(),
+        "details": details or {}
+    }
+    
+    logs.append(log_entry)
+    _save_json(LEARNING_LOG_FILE, logs)
+    
+    return log_id
+
+
+def get_learning_history(limit: int = 50) -> list:
+    """Get learning history logs, most recent first."""
+    logs = _load_json(LEARNING_LOG_FILE)
+    # Sort by timestamp descending
+    logs.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+    return logs[:limit]
 
 
 def get_ratings_by_session(session_id: str) -> list:
