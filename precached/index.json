@@ -1,0 +1,27 @@
+{
+  "happy summer vibes": {
+    "prompt_key": "happy_summer_vibes",
+    "path": "precached/happy_summer_vibes",
+    "metadata_path": "precached/happy_summer_vibes/metadata.json"
+  },
+  "epic cinematic trailer": {
+    "prompt_key": "epic_cinematic_trailer",
+    "path": "precached/epic_cinematic_trailer",
+    "metadata_path": "precached/epic_cinematic_trailer/metadata.json"
+  },
+  "chill lofi study beats": {
+    "prompt_key": "chill_lofi_study_beats",
+    "path": "precached/chill_lofi_study_beats",
+    "metadata_path": "precached/chill_lofi_study_beats/metadata.json"
+  },
+  "energetic workout music": {
+    "prompt_key": "energetic_workout_music",
+    "path": "precached/energetic_workout_music",
+    "metadata_path": "precached/energetic_workout_music/metadata.json"
+  },
+  "ambient night atmosphere": {
+    "prompt_key": "ambient_night_atmosphere",
+    "path": "precached/ambient_night_atmosphere",
+    "metadata_path": "precached/ambient_night_atmosphere/metadata.json"
+  }
+}

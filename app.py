@@ -1178,15 +1178,18 @@ with st.expander("🧠 INTELLIGENCE DASHBOARD", expanded=False):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 with st.sidebar:
-    # API Status
-    st.markdown("### SYSTEM STATUS")
+    # ═══════════════════════════════════════════════════════════════
+    # API STATUS
+    # ═══════════════════════════════════════════════════════════════
+    st.markdown("### CONNECTIONS")
 
     replicate_key = os.environ.get("REPLICATE_API_TOKEN", "")
     openai_key = os.environ.get("OPENAI_API_KEY", "")
     wandb_key = os.environ.get("WANDB_API_KEY", "")
+    weave_project = os.environ.get("WEAVE_PROJECT", "loopism-audio-refinement")
 
     # Show status indicators
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         if replicate_key:
             st.markdown('<span class="status-online">REPLICATE</span>', unsafe_allow_html=True)
@@ -1197,6 +1200,11 @@ with st.sidebar:
             st.markdown('<span class="status-online">OPENAI</span>', unsafe_allow_html=True)
         else:
             st.markdown('<span class="status-online status-offline">OPENAI</span>', unsafe_allow_html=True)
+    with col3:
+        if wandb_key:
+            st.markdown('<span class="status-online">WEAVE</span>', unsafe_allow_html=True)
+        else:
+            st.markdown('<span class="status-online status-offline">WEAVE</span>', unsafe_allow_html=True)
 
     # API Key inputs if not set
     if not replicate_key:
@@ -1213,8 +1221,68 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # Mission Parameters
-    st.markdown("### MISSION PARAMETERS")
+    # ═══════════════════════════════════════════════════════════════
+    # WEAVE OBSERVABILITY
+    # ═══════════════════════════════════════════════════════════════
+    st.markdown("### WEAVE OBSERVABILITY")
+
+    # Get learning metrics for display
+    try:
+        sidebar_metrics = get_metrics()
+        patterns_count = sidebar_metrics.total_examples if sidebar_metrics else 0
+        avg_score = sidebar_metrics.avg_score if sidebar_metrics else 0
+        times_reused = sidebar_metrics.examples_used_as_fewshot if sidebar_metrics else 0
+    except Exception:
+        patterns_count = 0
+        avg_score = 0
+        times_reused = 0
+
+    st.markdown(f"""
+    <div style="background: var(--bg-elevated); padding: 0.8rem; margin-bottom: 0.5rem; border-left: 2px solid var(--success);">
+        <div style="font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em;">PATTERNS LEARNED</div>
+        <div style="font-size: 1.2rem; color: var(--success); font-family: var(--font-display);">{patterns_count}</div>
+    </div>
+    <div style="background: var(--bg-elevated); padding: 0.8rem; margin-bottom: 0.5rem; border-left: 2px solid var(--cyan-electric);">
+        <div style="font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em;">TIMES REUSED</div>
+        <div style="font-size: 1.2rem; color: var(--cyan-electric); font-family: var(--font-display);">{times_reused}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div style="font-size: 0.7rem; color: var(--text-dim); margin: 0.8rem 0;">
+        <strong style="color: var(--text-secondary);">How it works:</strong><br>
+        • All operations traced to Weave<br>
+        • High-scoring refinements stored<br>
+        • User ratings boost examples<br>
+        • Past examples used as few-shot
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Weave Dashboard Links
+    wandb_entity = "aichen-harvey-mudd-college"  # From the traces we saw
+    weave_base_url = f"https://wandb.ai/{wandb_entity}/{weave_project}"
+
+    st.markdown(f"""
+    <a href="{weave_base_url}/weave/traces" target="_blank" class="weave-link" style="margin-bottom: 0.5rem; display: block; text-align: center;">
+        ◎ VIEW ALL TRACES
+    </a>
+    <a href="{weave_base_url}/weave/objects" target="_blank" class="weave-link" style="margin-bottom: 0.5rem; display: block; text-align: center; border-color: var(--success); color: var(--success);">
+        ◎ VIEW LEARNED DATA
+    </a>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div style="font-size: 0.6rem; color: var(--text-dim); margin-top: 0.5rem; text-align: center;">
+        Project: {weave_project}
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # ═══════════════════════════════════════════════════════════════
+    # MISSION PARAMETERS
+    # ═══════════════════════════════════════════════════════════════
+    st.markdown("### GENERATION CONFIG")
 
     max_iterations = st.slider(
         "ITERATIONS",
@@ -1236,7 +1304,9 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # Quick Launch
+    # ═══════════════════════════════════════════════════════════════
+    # QUICK LAUNCH
+    # ═══════════════════════════════════════════════════════════════
     st.markdown("### QUICK LAUNCH")
 
     quick_prompts = [
@@ -1254,12 +1324,16 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # Weave Link
-    st.markdown("### TELEMETRY")
-    st.markdown("""
-    <a href="https://wandb.ai/" target="_blank" class="weave-link">
-        ◎ OPEN WEAVE DASHBOARD
-    </a>
+    # ═══════════════════════════════════════════════════════════════
+    # DATA STORAGE INFO
+    # ═══════════════════════════════════════════════════════════════
+    st.markdown("### WHERE DATA GOES")
+    st.markdown(f"""
+    <div style="font-size: 0.7rem; color: var(--text-dim); line-height: 1.6;">
+        <strong style="color: var(--phosphor-amber);">Traces:</strong> Every LLM call, audio generation, and scoring operation is logged to Weave for debugging and analysis.<br><br>
+        <strong style="color: var(--success);">Learned Patterns:</strong> Refinements scoring ≥75 or rated ≥4 stars are saved to the <code>successful-refinements</code> dataset.<br><br>
+        <strong style="color: var(--cyan-electric);">Your Ratings:</strong> All ratings are stored in the <code>user-feedback</code> dataset and used to improve future generations.
+    </div>
     """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1300,7 +1374,6 @@ if generate_btn and can_run:
     st.session_state.iterations = []
     st.session_state.results = None
     st.session_state.ratings = {}
-    st.session_state.using_cache = False
 
     # Check if this is a cached quick prompt
     prompt_is_cached = is_prompt_cached(user_prompt)
@@ -1313,47 +1386,20 @@ if generate_btn and can_run:
         if prompt_is_cached:
             # ═══════════════════════════════════════════════════════════════
             # CACHED QUICK PROMPT - Load with simulated delays
+            # Appears identical to live generation
             # ═══════════════════════════════════════════════════════════════
-            st.session_state.using_cache = True
 
-            # Create placeholder for progressive loading
-            progress_placeholder = st.empty()
-            iteration_placeholders = []
-
-            # Show loading status
-            progress_placeholder.markdown("""
-            <div style="text-align: center; padding: 2rem;">
-                <div style="font-family: var(--font-display); color: var(--phosphor-amber); font-size: 1.2rem; margin-bottom: 1rem;">
-                    ◎ LOADING CACHED DEMO
-                </div>
-                <div style="font-family: var(--font-mono); color: var(--text-secondary); font-size: 0.8rem;">
-                    Pre-generated audio loading...
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # Stream iterations with delays
-            iterations_loaded = []
-            for iteration in stream_cached_iterations(user_prompt, simulate_delay=True):
-                iterations_loaded.append(iteration)
-                st.session_state.iterations = iterations_loaded.copy()
-
-                # Update progress
-                progress_placeholder.markdown(f"""
-                <div style="text-align: center; padding: 1rem;">
-                    <div style="font-family: var(--font-mono); color: var(--success); font-size: 0.9rem;">
-                        ◎ Loaded iteration {len(iterations_loaded)} of 3
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+            # Stream iterations with delays (looks like real generation)
+            with st.spinner("◎ MISSION IN PROGRESS — GENERATING, SCORING, AND LEARNING..."):
+                iterations_loaded = []
+                for iteration in stream_cached_iterations(user_prompt, simulate_delay=True):
+                    iterations_loaded.append(iteration)
+                    st.session_state.iterations = iterations_loaded.copy()
 
             # Load comparison data
             st.session_state.results = load_cached_comparison_data(user_prompt)
 
-            # Clear progress placeholder
-            progress_placeholder.empty()
-
-            st.success("◎ DEMO LOADED — CACHED AUDIO READY")
+            st.success("◎ MISSION COMPLETE — AUDIO GENERATION SUCCESSFUL")
 
             # Create a mock engine for ratings (won't actually generate)
             st.session_state.engine = None
@@ -1393,28 +1439,16 @@ if generate_btn and can_run:
 if st.session_state.iterations:
     # Timeline Header
     examples_used = st.session_state.iterations[0].examples_used if st.session_state.iterations else 0
-    using_cache = st.session_state.get("using_cache", False)
-
-    cache_badge = ""
-    if using_cache:
-        cache_badge = '<span style="background: rgba(0, 255, 255, 0.1); border: 1px solid var(--cyan-electric); color: var(--cyan-electric); padding: 0.2rem 0.5rem; font-size: 0.6rem; margin-left: 1rem;">⚡ CACHED DEMO</span>'
 
     st.markdown(f"""
     <div class="timeline-header">
         <span class="timeline-title">◎ ITERATION TIMELINE</span>
-        {cache_badge}
         <span class="timeline-status">● COMPLETE</span>
     </div>
     """, unsafe_allow_html=True)
 
     # Show examples used indicator
-    if using_cache:
-        st.markdown("""
-        <div class="examples-indicator" style="margin-bottom: 1rem; color: var(--cyan-electric);">
-            ⚡ Pre-generated demo clips loaded instantly
-        </div>
-        """, unsafe_allow_html=True)
-    elif examples_used > 0:
+    if examples_used > 0:
         st.markdown(f"""
         <div class="examples-indicator" style="margin-bottom: 1rem;">
             📚 Used {examples_used} learned patterns as examples

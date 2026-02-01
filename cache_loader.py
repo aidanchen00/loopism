@@ -16,8 +16,8 @@ from dataclasses import dataclass
 from loopism_core import LoopIteration
 
 CACHE_DIR = Path("precached")
-SIMULATED_DELAY_MIN = 4.0  # seconds
-SIMULATED_DELAY_MAX = 6.0  # seconds
+SIMULATED_DELAY_MIN = 3.0  # seconds
+SIMULATED_DELAY_MAX = 5.0  # seconds
 
 
 def get_cache_index() -> dict:
