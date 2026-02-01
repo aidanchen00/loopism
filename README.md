@@ -28,25 +28,22 @@ pip install -r requirements.txt
 ## Architecture
 
 1. **User Input** → Simple prompt (e.g., "happy piano")
-2. **Critique Loop** (recursive-agents) → LLM critiques and refines prompt
-3. **Audio Generation** (Replicate) → MusicGen creates audio
+2. **Self-Refine Loop** → LLM critiques and refines prompt iteratively
+3. **Audio Generation** → Replicate MusicGen creates audio
 4. **Iterate** → Repeat with improved prompt
 5. **Compare** → Hear all iterations side-by-side
 
 ## Tech Stack
 
-- **recursive-agents**: Self-critique loops
-- **deep-research**: Iterative exploration architecture
+- **Self-Refine**: Iterative self-critique and revision loops
 - **Replicate API**: Cloud-based MusicGen (no GPU needed)
 - **W&B Weave**: Full observability and tracing
-- **Streamlit**: Beautiful interactive UI
+- **Streamlit**: Interactive UI
 
 ## Project Structure
 
 ```
 loopism/
-├── deep-research/          # Cloned repo (fractal exploration reference)
-├── recursive-agents/       # Cloned repo (self-critique loops)
 ├── audio_generator.py      # Replicate MusicGen wrapper
 ├── loopism_core.py         # Main engine with Weave tracing
 ├── app.py                  # Streamlit UI

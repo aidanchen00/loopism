@@ -24,7 +24,3 @@ Thumbs.db
 # Weave/W&B
 wandb/
 .weave/
-
-# Cloned repos (optional - remove these lines if you want to include them)
-# deep-research/
-# recursive-agents/

@@ -89,8 +89,8 @@ class ReplicateMusicGenerator:
                 }
             )
 
-            # output is a URL to the generated audio
-            audio_url = output
+            # output is a URL to the generated audio (may be FileOutput object or string)
+            audio_url = str(output) if output else ""
 
             # Download the audio file
             if output_name is None:
