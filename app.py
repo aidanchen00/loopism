@@ -2099,27 +2099,48 @@ def get_learning_traces():
         trace_system = None
         traces = []
 
-    # DEMO: Add demo traces if none exist (timestamps on 2/1 between 11am-12:30pm)
+    # DEMO: Realistic traces based on dance music and rock prompts
     if not traces:
-        demo_data = [
-            ("2026-02-01T11:05:12", "Electronic", "energetic", 92, 5, 140),
-            ("2026-02-01T11:12:34", "Ambient", "calm", 85, 4, 90),
-            ("2026-02-01T11:23:45", "Lo-Fi", "melancholic", 78, 4, 120),
-            ("2026-02-01T11:35:21", "Cinematic", "uplifting", 88, 5, 110),
-            ("2026-02-01T11:48:56", "Electronic", "dark", 72, 3, 130),
-            ("2026-02-01T12:02:18", "Jazz", "peaceful", 81, 4, 100),
-            ("2026-02-01T12:15:33", "Rock", "energetic", 76, None, 140),
-            ("2026-02-01T12:27:44", "Ambient", "melancholic", 83, 5, 80),
+        traces = [
+            # Dance Music Session
+            {'trace_id': 'a1b2c3d4e5f6', 'timestamp': '2026-02-01T12:15:00', 'auto_score': 85.5, 'user_rating': 4,
+             'initial_prompt': 'I want popular dance music',
+             'refined_prompt': 'Energetic EDM dance track (128 BPM) with punchy kicks, deep bass, bright synth leads, and build-ups leading to drops.',
+             'music_context': {'genre': 'EDM', 'mood': 'energetic', 'bpm': 128},
+             'agent_decisions': [{'agent_name': 'prompt_refiner', 'confidence': 0.855, 'success': True, 'feedback_score': 85.5, 'decision_type': 'refinement', 'parameters': {'focus': 'genre_specificity'}}],
+             'times_retrieved': 3},
+            {'trace_id': 'b2c3d4e5f6a7', 'timestamp': '2026-02-01T12:15:18', 'auto_score': 88.2, 'user_rating': 5,
+             'initial_prompt': 'Energetic EDM dance track (128 BPM) with punchy kicks, deep bass, bright synth leads, and build-ups.',
+             'refined_prompt': 'High-energy EDM dance track (128 BPM) with punchy four-on-the-floor kicks, sidechained bass, euphoric synth leads, and tension-building risers.',
+             'music_context': {'genre': 'EDM', 'mood': 'euphoric', 'bpm': 128},
+             'agent_decisions': [{'agent_name': 'prompt_refiner', 'confidence': 0.882, 'success': True, 'feedback_score': 88.2, 'decision_type': 'refinement', 'parameters': {'focus': 'production_detail'}}],
+             'times_retrieved': 5},
+            {'trace_id': 'c3d4e5f6a7b8', 'timestamp': '2026-02-01T12:15:35', 'auto_score': 91.0, 'user_rating': 5,
+             'initial_prompt': 'High-energy EDM dance track with sidechained bass and risers.',
+             'refined_prompt': 'High-energy EDM dance track (128 BPM) with four-on-the-floor kicks, sidechained bass drops, euphoric synth leads, and vocal chops. Build tension with risers in A minor.',
+             'music_context': {'genre': 'EDM', 'mood': 'euphoric', 'bpm': 128},
+             'agent_decisions': [{'agent_name': 'prompt_refiner', 'confidence': 0.91, 'success': True, 'feedback_score': 91.0, 'decision_type': 'refinement', 'parameters': {'focus': 'modern_elements'}}],
+             'times_retrieved': 7},
+            # Rock Music Session
+            {'trace_id': 'd4e5f6a7b8c9', 'timestamp': '2026-02-01T12:18:00', 'auto_score': 82.8, 'user_rating': 4,
+             'initial_prompt': 'fast paced modern rock music',
+             'refined_prompt': 'High-energy modern rock track (160 BPM) with distorted electric guitars, driving drums, and powerful bass.',
+             'music_context': {'genre': 'Rock', 'mood': 'aggressive', 'bpm': 160},
+             'agent_decisions': [{'agent_name': 'prompt_refiner', 'confidence': 0.828, 'success': True, 'feedback_score': 82.8, 'decision_type': 'refinement', 'parameters': {'focus': 'genre_specificity'}}],
+             'times_retrieved': 2},
+            {'trace_id': 'e5f6a7b8c9d0', 'timestamp': '2026-02-01T12:18:17', 'auto_score': 87.5, 'user_rating': 4,
+             'initial_prompt': 'High-energy modern rock track (160 BPM) with distorted guitars and driving drums.',
+             'refined_prompt': 'High-energy modern rock track (160-170 BPM) with crunchy distorted power chords, double-time drums, and aggressive bass. Include melodic guitar hooks.',
+             'music_context': {'genre': 'Rock', 'mood': 'intense', 'bpm': 165},
+             'agent_decisions': [{'agent_name': 'prompt_refiner', 'confidence': 0.875, 'success': True, 'feedback_score': 87.5, 'decision_type': 'refinement', 'parameters': {'focus': 'technique_detail'}}],
+             'times_retrieved': 3},
+            {'trace_id': 'f6a7b8c9d0e1', 'timestamp': '2026-02-01T12:18:34', 'auto_score': 90.2, 'user_rating': 5,
+             'initial_prompt': 'High-energy modern rock track with power chords and double-time drums.',
+             'refined_prompt': 'High-energy modern rock track (160-170 BPM) with crunchy power chords, driving double-time drums, melodic lead guitar hooks, and aggressive bass. Include breakdowns in E minor.',
+             'music_context': {'genre': 'Rock', 'mood': 'explosive', 'bpm': 165},
+             'agent_decisions': [{'agent_name': 'prompt_refiner', 'confidence': 0.902, 'success': True, 'feedback_score': 90.2, 'decision_type': 'refinement', 'parameters': {'focus': 'structure_dynamics'}}],
+             'times_retrieved': 4}
         ]
-        for i, (ts, genre, mood, score, rating, bpm) in enumerate(demo_data):
-            traces.append({
-                'trace_id': f"demo_{i}", 'timestamp': ts, 'auto_score': score, 'user_rating': rating,
-                'initial_prompt': f"Create {mood} {genre.lower()} music",
-                'refined_prompt': f"Create {mood} {genre.lower()} music with synthesizers, {bpm} BPM",
-                'music_context': {'genre': genre, 'mood': mood, 'bpm': bpm},
-                'agent_decisions': [{'agent_name': 'prompt_refiner', 'confidence': score/100, 'success': score >= 70, 'feedback_score': score, 'decision_type': 'refinement', 'parameters': {'focus': 'specificity'}}],
-                'times_retrieved': 3 if rating and rating >= 4 else 0
-            })
     return trace_system, traces
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2297,55 +2318,106 @@ if st.session_state.current_page == "PATTERNS":
         # Get trace data
         traces = trace_system._get_traces()
         
-        # DEMO: Add hardcoded demo traces if none exist
+        # DEMO: Add realistic demo traces based on actual generation patterns
         if not traces:
-            from datetime import datetime, timedelta
-            import random
-            demo_traces = []
-            genres = ["Electronic", "Ambient", "Lo-Fi", "Cinematic", "Jazz", "Rock"]
-            moods = ["energetic", "calm", "melancholic", "uplifting", "dark", "peaceful"]
-            
-            for i in range(8):
-                timestamp = (datetime.now() - timedelta(hours=random.randint(0, 48))).isoformat()
-                genre = random.choice(genres)
-                mood = random.choice(moods)
-                score = random.randint(65, 95)
-                rating = random.choice([None, 4, 5]) if score > 75 else random.choice([None, 2, 3, 4])
-                
-                demo_traces.append({
-                    'trace_id': f"demo_trace_{i}_{int(time.time())}",
-                    'session_id': f"demo_session_{i}",
-                    'timestamp': timestamp,
-                    'initial_prompt': f"Create {mood} {genre.lower()} music",
-                    'refined_prompt': f"Create {mood} {genre.lower()} music with layered synthesizers, {random.choice(['120', '140', '90'])} BPM, atmospheric pads, and subtle percussion",
-                    'critique': f"The original prompt lacked specificity in instrumentation and tempo. Added BPM, instrument details, and mood descriptors.",
-                    'improvement_notes': f"Enhanced with tempo, instrumentation, and mood clarity for better audio generation.",
-                    'auto_score': score,
-                    'user_rating': rating,
-                    'music_context': {
-                        'genre': genre,
-                        'mood': mood,
-                        'bpm': random.choice([90, 120, 140, 160]),
-                        'instruments': random.sample(['synthesizer', 'piano', 'drums', 'bass', 'guitar'], 3)
-                    },
-                    'implicit_signals': {
-                        'replay_count': random.randint(0, 3) if rating and rating >= 4 else 0,
-                        'save_count': 1 if rating and rating >= 4 else 0,
-                        'export_count': 0,
-                        'edit_count': 0
-                    },
-                    'agent_decisions': [
-                        {
-                            'agent_name': 'prompt_refiner',
-                            'decision_type': 'refinement',
-                            'parameters': {'focus': 'specificity', 'strategy': 'additive'},
-                            'confidence': score / 100,
-                            'success': score >= 70,
-                            'feedback_score': score
-                        }
-                    ],
-                    'times_retrieved': random.randint(0, 5) if rating and rating >= 4 else 0
-                })
+            demo_traces = [
+                # Popular Dance Music - Iteration 0
+                {
+                    'trace_id': 'a1b2c3d4e5f6',
+                    'session_id': 'loopism_1769980500',
+                    'timestamp': '2026-02-01T12:15:00',
+                    'initial_prompt': 'I want popular dance music',
+                    'refined_prompt': 'Energetic EDM dance track (128 BPM) with punchy kicks, deep bass, bright synth leads, and build-ups leading to drops.',
+                    'critique': "The prompt is too vague - it doesn't specify genre, tempo, instrumentation, or mood. Popular dance music spans many styles from EDM to disco to house.",
+                    'improvement_notes': 'Added specific genre (EDM), tempo, and key instrumentation elements typical of popular dance music.',
+                    'auto_score': 85.5,
+                    'user_rating': 4,
+                    'music_context': {'genre': 'EDM', 'mood': 'energetic', 'bpm': 128, 'instruments': ['synthesizer', 'drums', 'bass']},
+                    'implicit_signals': {'replay_count': 2, 'save_count': 1, 'export_count': 0, 'edit_count': 0},
+                    'agent_decisions': [{'agent_name': 'prompt_refiner', 'decision_type': 'refinement', 'parameters': {'focus': 'genre_specificity', 'strategy': 'additive'}, 'confidence': 0.855, 'success': True, 'feedback_score': 85.5}],
+                    'times_retrieved': 3
+                },
+                # Popular Dance Music - Iteration 1
+                {
+                    'trace_id': 'b2c3d4e5f6a7',
+                    'session_id': 'loopism_1769980500',
+                    'timestamp': '2026-02-01T12:15:18',
+                    'initial_prompt': 'Energetic EDM dance track (128 BPM) with punchy kicks, deep bass, bright synth leads, and build-ups leading to drops.',
+                    'refined_prompt': 'High-energy EDM dance track (128 BPM) with punchy four-on-the-floor kicks, sidechained bass, euphoric synth leads, and tension-building risers. Include a massive drop section.',
+                    'critique': 'Good foundation but lacks specific drop structure, sidechain characteristics, and emotional arc. Could use more detail on synth textures.',
+                    'improvement_notes': 'Added sidechain compression detail, specified kick pattern, enhanced emotional descriptor (euphoric), and clarified the drop structure.',
+                    'auto_score': 88.2,
+                    'user_rating': 5,
+                    'music_context': {'genre': 'EDM', 'mood': 'euphoric', 'bpm': 128, 'instruments': ['synthesizer', 'drums', 'bass', 'risers']},
+                    'implicit_signals': {'replay_count': 4, 'save_count': 1, 'export_count': 1, 'edit_count': 0},
+                    'agent_decisions': [{'agent_name': 'prompt_refiner', 'decision_type': 'refinement', 'parameters': {'focus': 'production_detail', 'strategy': 'enhance'}, 'confidence': 0.882, 'success': True, 'feedback_score': 88.2}],
+                    'times_retrieved': 5
+                },
+                # Popular Dance Music - Iteration 2
+                {
+                    'trace_id': 'c3d4e5f6a7b8',
+                    'session_id': 'loopism_1769980500',
+                    'timestamp': '2026-02-01T12:15:35',
+                    'initial_prompt': 'High-energy EDM dance track (128 BPM) with punchy four-on-the-floor kicks, sidechained bass, euphoric synth leads, and tension-building risers.',
+                    'refined_prompt': 'High-energy EDM dance track (128 BPM) with punchy four-on-the-floor kicks, sidechained bass drops, euphoric synth leads, and vocal chops. Build tension with risers leading to massive drops in A minor.',
+                    'critique': 'Strong prompt but could benefit from key signature and additional texture elements like vocal chops which are popular in current dance music.',
+                    'improvement_notes': 'Added key signature (A minor), included vocal chops for modern sound, and refined the drop description.',
+                    'auto_score': 91.0,
+                    'user_rating': 5,
+                    'music_context': {'genre': 'EDM', 'mood': 'euphoric', 'bpm': 128, 'instruments': ['synthesizer', 'drums', 'bass', 'vocals']},
+                    'implicit_signals': {'replay_count': 6, 'save_count': 1, 'export_count': 1, 'edit_count': 0},
+                    'agent_decisions': [{'agent_name': 'prompt_refiner', 'decision_type': 'refinement', 'parameters': {'focus': 'modern_elements', 'strategy': 'polish'}, 'confidence': 0.91, 'success': True, 'feedback_score': 91.0}],
+                    'times_retrieved': 7
+                },
+                # Fast Paced Modern Rock - Iteration 0
+                {
+                    'trace_id': 'd4e5f6a7b8c9',
+                    'session_id': 'loopism_1769980600',
+                    'timestamp': '2026-02-01T12:18:00',
+                    'initial_prompt': 'fast paced modern rock music',
+                    'refined_prompt': 'High-energy modern rock track (160 BPM) with distorted electric guitars, driving drums, and powerful bass. Create an intense, aggressive atmosphere.',
+                    'critique': 'The prompt lacks specificity in tempo, instrumentation details, and structure. Modern rock has many subgenres - needs clarification on style.',
+                    'improvement_notes': 'Added specific tempo, key instruments, and mood descriptor to clarify the modern rock style.',
+                    'auto_score': 82.8,
+                    'user_rating': 4,
+                    'music_context': {'genre': 'Rock', 'mood': 'aggressive', 'bpm': 160, 'instruments': ['guitar', 'drums', 'bass']},
+                    'implicit_signals': {'replay_count': 1, 'save_count': 1, 'export_count': 0, 'edit_count': 0},
+                    'agent_decisions': [{'agent_name': 'prompt_refiner', 'decision_type': 'refinement', 'parameters': {'focus': 'genre_specificity', 'strategy': 'additive'}, 'confidence': 0.828, 'success': True, 'feedback_score': 82.8}],
+                    'times_retrieved': 2
+                },
+                # Fast Paced Modern Rock - Iteration 1
+                {
+                    'trace_id': 'e5f6a7b8c9d0',
+                    'session_id': 'loopism_1769980600',
+                    'timestamp': '2026-02-01T12:18:17',
+                    'initial_prompt': 'High-energy modern rock track (160 BPM) with distorted electric guitars, driving drums, and powerful bass.',
+                    'refined_prompt': 'High-energy modern rock track (160-170 BPM) with crunchy distorted power chords, double-time drums, and aggressive bass. Include melodic guitar hooks and dynamic verses building to explosive choruses.',
+                    'critique': 'Good start but needs more specific guitar techniques, drum patterns, and song structure details to fully capture modern rock sound.',
+                    'improvement_notes': 'Added guitar technique specifics (power chords), drum pattern detail (double-time), and song structure with verse-chorus dynamics.',
+                    'auto_score': 87.5,
+                    'user_rating': 4,
+                    'music_context': {'genre': 'Rock', 'mood': 'intense', 'bpm': 165, 'instruments': ['guitar', 'drums', 'bass']},
+                    'implicit_signals': {'replay_count': 2, 'save_count': 1, 'export_count': 0, 'edit_count': 0},
+                    'agent_decisions': [{'agent_name': 'prompt_refiner', 'decision_type': 'refinement', 'parameters': {'focus': 'technique_detail', 'strategy': 'enhance'}, 'confidence': 0.875, 'success': True, 'feedback_score': 87.5}],
+                    'times_retrieved': 3
+                },
+                # Fast Paced Modern Rock - Iteration 2
+                {
+                    'trace_id': 'f6a7b8c9d0e1',
+                    'session_id': 'loopism_1769980600',
+                    'timestamp': '2026-02-01T12:18:34',
+                    'initial_prompt': 'High-energy modern rock track (160-170 BPM) with crunchy distorted power chords, double-time drums, and aggressive bass.',
+                    'refined_prompt': 'High-energy modern rock track (160-170 BPM) with crunchy distorted power chords, driving double-time drums, melodic lead guitar hooks, and aggressive bass. Include dynamic breakdowns leading to explosive choruses in E minor.',
+                    'critique': 'Strong prompt but could benefit from key signature, breakdown sections, and more specific lead guitar characteristics.',
+                    'improvement_notes': 'Added key signature (E minor), specified lead guitar as melodic, and included breakdown sections for dynamic contrast.',
+                    'auto_score': 90.2,
+                    'user_rating': 5,
+                    'music_context': {'genre': 'Rock', 'mood': 'explosive', 'bpm': 165, 'instruments': ['guitar', 'drums', 'bass']},
+                    'implicit_signals': {'replay_count': 3, 'save_count': 1, 'export_count': 1, 'edit_count': 0},
+                    'agent_decisions': [{'agent_name': 'prompt_refiner', 'decision_type': 'refinement', 'parameters': {'focus': 'structure_dynamics', 'strategy': 'polish'}, 'confidence': 0.902, 'success': True, 'feedback_score': 90.2}],
+                    'times_retrieved': 4
+                }
+            ]
             traces = demo_traces
 
         if traces:
@@ -2357,30 +2429,30 @@ if st.session_state.current_page == "PATTERNS":
 
             insights = trace_system.generate_insights(lookback_hours=72)
             
-            # DEMO: Add hardcoded demo insights if none exist
+            # DEMO: Add realistic demo insights based on trace patterns
             if not insights:
                 from trace_learning import LearningInsight
                 insights = [
                     LearningInsight(
-                        insight_text='"energetic" vibes are working well right now',
-                        confidence=0.85,
-                        category='mood',
-                        supporting_examples=6,
-                        timestamp=datetime.now().isoformat()
+                        insight_text='EDM tracks with "sidechained bass" and "four-on-the-floor kicks" score 88+ consistently',
+                        confidence=0.91,
+                        category='production',
+                        supporting_examples=3,
+                        timestamp='2026-02-01T12:15:35'
                     ),
                     LearningInsight(
-                        insight_text='High-scoring prompts often include "layered synthesizers"',
-                        confidence=0.72,
-                        category='instrumentation',
+                        insight_text='Adding key signatures (A minor, E minor) improves scores by ~5 points',
+                        confidence=0.88,
+                        category='musicality',
                         supporting_examples=4,
-                        timestamp=datetime.now().isoformat()
+                        timestamp='2026-02-01T12:18:34'
                     ),
                     LearningInsight(
-                        insight_text='Electronic genre with 140 BPM performs consistently well',
-                        confidence=0.78,
+                        insight_text='Rock prompts with "power chords" and "double-time drums" get high user ratings',
+                        confidence=0.85,
                         category='genre',
-                        supporting_examples=5,
-                        timestamp=datetime.now().isoformat()
+                        supporting_examples=3,
+                        timestamp='2026-02-01T12:18:17'
                     )
                 ]
 
@@ -2829,59 +2901,36 @@ if st.session_state.current_page == "PATTERNS":
         from local_storage import get_learning_history
         history_logs = get_learning_history(limit=30)
         
-        # DEMO: Add hardcoded demo learning logs if none exist
+        # DEMO: Realistic learning history based on dance music and rock prompts
         if not history_logs:
-            from datetime import datetime, timedelta
-            import random
-            demo_logs = []
-            prompts = [
-                "Create energetic electronic music",
-                "Create calm ambient music",
-                "Create melancholic lo-fi music",
-                "Create uplifting cinematic music"
+            history_logs = [
+                # Dance Music Session Events
+                {'id': 'log_001', 'event_type': 'pattern_retrieved', 'session_id': 'loopism_1769980500', 'prompt': 'I want popular dance music', 'timestamp': '2026-02-01T12:14:58',
+                 'details': {'patterns_retrieved': 2, 'pattern_ids': ['edm_pattern_01', 'house_pattern_02'], 'pattern_scores': [87, 82]}},
+                {'id': 'log_002', 'event_type': 'pattern_learned', 'session_id': 'loopism_1769980500', 'prompt': 'I want popular dance music', 'timestamp': '2026-02-01T12:15:08',
+                 'details': {'record_id': 'a1b2c3d4e5f6', 'auto_score': 85.5, 'user_rating': 4, 'refined_prompt': 'Energetic EDM dance track (128 BPM) with punchy kicks, deep bass, bright synth leads'}},
+                {'id': 'log_003', 'event_type': 'rating_submitted', 'session_id': 'loopism_1769980500', 'prompt': 'I want popular dance music', 'timestamp': '2026-02-01T12:15:12',
+                 'details': {'rating': 4, 'iteration_num': 0, 'auto_score': 85.5}},
+                {'id': 'log_004', 'event_type': 'pattern_learned', 'session_id': 'loopism_1769980500', 'prompt': 'Energetic EDM dance track (128 BPM)', 'timestamp': '2026-02-01T12:15:25',
+                 'details': {'record_id': 'b2c3d4e5f6a7', 'auto_score': 88.2, 'user_rating': 5, 'refined_prompt': 'High-energy EDM with sidechained bass and euphoric synth leads'}},
+                {'id': 'log_005', 'event_type': 'rating_submitted', 'session_id': 'loopism_1769980500', 'prompt': 'Energetic EDM dance track (128 BPM)', 'timestamp': '2026-02-01T12:15:28',
+                 'details': {'rating': 5, 'iteration_num': 1, 'auto_score': 88.2}},
+                {'id': 'log_006', 'event_type': 'pattern_learned', 'session_id': 'loopism_1769980500', 'prompt': 'High-energy EDM with sidechained bass', 'timestamp': '2026-02-01T12:15:42',
+                 'details': {'record_id': 'c3d4e5f6a7b8', 'auto_score': 91.0, 'user_rating': 5, 'refined_prompt': 'High-energy EDM (128 BPM) with vocal chops and risers in A minor'}},
+                # Rock Music Session Events
+                {'id': 'log_007', 'event_type': 'pattern_retrieved', 'session_id': 'loopism_1769980600', 'prompt': 'fast paced modern rock music', 'timestamp': '2026-02-01T12:17:58',
+                 'details': {'patterns_retrieved': 2, 'pattern_ids': ['rock_pattern_01', 'metal_pattern_02'], 'pattern_scores': [84, 79]}},
+                {'id': 'log_008', 'event_type': 'pattern_learned', 'session_id': 'loopism_1769980600', 'prompt': 'fast paced modern rock music', 'timestamp': '2026-02-01T12:18:08',
+                 'details': {'record_id': 'd4e5f6a7b8c9', 'auto_score': 82.8, 'user_rating': 4, 'refined_prompt': 'High-energy modern rock track (160 BPM) with distorted guitars'}},
+                {'id': 'log_009', 'event_type': 'rating_submitted', 'session_id': 'loopism_1769980600', 'prompt': 'fast paced modern rock music', 'timestamp': '2026-02-01T12:18:12',
+                 'details': {'rating': 4, 'iteration_num': 0, 'auto_score': 82.8}},
+                {'id': 'log_010', 'event_type': 'pattern_learned', 'session_id': 'loopism_1769980600', 'prompt': 'High-energy modern rock track (160 BPM)', 'timestamp': '2026-02-01T12:18:22',
+                 'details': {'record_id': 'e5f6a7b8c9d0', 'auto_score': 87.5, 'user_rating': 4, 'refined_prompt': 'Modern rock with crunchy power chords and double-time drums'}},
+                {'id': 'log_011', 'event_type': 'pattern_used', 'session_id': 'loopism_1769980600', 'prompt': 'Modern rock with power chords', 'timestamp': '2026-02-01T12:18:30',
+                 'details': {'iteration': 2, 'patterns_used': 2, 'refined_prompt': 'Modern rock (160-170 BPM) with breakdowns in E minor', 'improvement_notes': 'Added key signature and breakdown sections'}},
+                {'id': 'log_012', 'event_type': 'rating_submitted', 'session_id': 'loopism_1769980600', 'prompt': 'Modern rock with breakdowns in E minor', 'timestamp': '2026-02-01T12:18:42',
+                 'details': {'rating': 5, 'iteration_num': 2, 'auto_score': 90.2}}
             ]
-            
-            for i in range(12):
-                timestamp = (datetime.now() - timedelta(hours=random.randint(0, 48))).isoformat()
-                event_type = random.choice(['pattern_retrieved', 'pattern_used', 'pattern_learned', 'rating_submitted'])
-                prompt = random.choice(prompts)
-                
-                if event_type == 'pattern_retrieved':
-                    details = {
-                        'patterns_retrieved': random.randint(2, 4),
-                        'pattern_ids': [f"pattern_{j}" for j in range(random.randint(2, 4))],
-                        'pattern_scores': [random.randint(75, 95) for _ in range(random.randint(2, 4))]
-                    }
-                elif event_type == 'pattern_used':
-                    details = {
-                        'iteration': random.randint(1, 3),
-                        'patterns_used': random.randint(2, 3),
-                        'refined_prompt': f"{prompt} with enhanced instrumentation and tempo",
-                        'improvement_notes': "Added specific instrumentation, BPM, and mood descriptors"
-                    }
-                elif event_type == 'pattern_learned':
-                    details = {
-                        'record_id': f"pattern_{i}",
-                        'auto_score': random.randint(80, 95),
-                        'user_rating': random.choice([4, 5]),
-                        'refined_prompt': f"{prompt} with enhanced instrumentation and tempo"
-                    }
-                else:  # rating_submitted
-                    details = {
-                        'rating': random.choice([4, 5]),
-                        'iteration_num': random.randint(0, 2),
-                        'auto_score': random.randint(75, 90)
-                    }
-                
-                demo_logs.append({
-                    'id': f"demo_log_{i}",
-                    'event_type': event_type,
-                    'session_id': f"demo_session_{i}",
-                    'prompt': prompt,
-                    'timestamp': timestamp,
-                    'details': details
-                })
-            history_logs = demo_logs
         
         if history_logs:
             for log in history_logs:
@@ -3141,37 +3190,36 @@ if st.session_state.current_page == "RATINGS":
 
     ratings_list = get_all_ratings()
     
-    # DEMO: Add hardcoded demo ratings if none exist
+    # DEMO: Realistic ratings based on dance music and rock prompts
     if not ratings_list:
-        demo_ratings = []
-        prompts = [
-            "Create energetic electronic music with layered synthesizers, 140 BPM, atmospheric pads, and subtle percussion",
-            "Create calm ambient music with soft piano, 90 BPM, reverb-heavy textures, and minimal percussion",
-            "Create melancholic lo-fi music with vintage synthesizers, 120 BPM, warm analog sounds, and gentle beats",
-            "Create uplifting cinematic music with orchestral elements, 110 BPM, epic strings, and powerful drums",
-            "Create dark electronic music with deep bass, 130 BPM, industrial textures, and aggressive percussion"
+        ratings_list = [
+            # Dance Music ratings
+            {'id': 'r_dance_001', 'pattern_id': 'a1b2c3d4e5f6', 'rating': 4, 'timestamp': '2026-02-01T12:15:05',
+             'session_id': 'loopism_1769980500',
+             'refined_prompt': 'Energetic EDM dance track (128 BPM) with punchy kicks, deep bass, bright synth leads, and build-ups leading to drops.',
+             'auto_score': 85.5},
+            {'id': 'r_dance_002', 'pattern_id': 'b2c3d4e5f6a7', 'rating': 5, 'timestamp': '2026-02-01T12:15:22',
+             'session_id': 'loopism_1769980500',
+             'refined_prompt': 'High-energy EDM dance track (128 BPM) with punchy four-on-the-floor kicks, sidechained bass, euphoric synth leads, and tension-building risers.',
+             'auto_score': 88.2},
+            {'id': 'r_dance_003', 'pattern_id': 'c3d4e5f6a7b8', 'rating': 5, 'timestamp': '2026-02-01T12:15:40',
+             'session_id': 'loopism_1769980500',
+             'refined_prompt': 'High-energy EDM dance track (128 BPM) with four-on-the-floor kicks, sidechained bass drops, euphoric synth leads, and vocal chops. Build tension with risers in A minor.',
+             'auto_score': 91.0},
+            # Rock Music ratings
+            {'id': 'r_rock_001', 'pattern_id': 'd4e5f6a7b8c9', 'rating': 4, 'timestamp': '2026-02-01T12:18:05',
+             'session_id': 'loopism_1769980600',
+             'refined_prompt': 'High-energy modern rock track (160 BPM) with distorted electric guitars, driving drums, and powerful bass.',
+             'auto_score': 82.8},
+            {'id': 'r_rock_002', 'pattern_id': 'e5f6a7b8c9d0', 'rating': 4, 'timestamp': '2026-02-01T12:18:20',
+             'session_id': 'loopism_1769980600',
+             'refined_prompt': 'High-energy modern rock track (160-170 BPM) with crunchy distorted power chords, double-time drums, and aggressive bass. Include melodic guitar hooks.',
+             'auto_score': 87.5},
+            {'id': 'r_rock_003', 'pattern_id': 'f6a7b8c9d0e1', 'rating': 5, 'timestamp': '2026-02-01T12:18:38',
+             'session_id': 'loopism_1769980600',
+             'refined_prompt': 'High-energy modern rock track (160-170 BPM) with crunchy power chords, driving double-time drums, melodic lead guitar hooks, and aggressive bass. Include breakdowns in E minor.',
+             'auto_score': 90.2}
         ]
-        # Fixed timestamps on 2/1 between 11am and 12:30pm
-        timestamps = [
-            "2026-02-01T11:08:23", "2026-02-01T11:22:45", "2026-02-01T11:38:12",
-            "2026-02-01T11:52:33", "2026-02-01T12:09:17", "2026-02-01T12:24:41"
-        ]
-        ratings_data = [
-            (5, prompts[0], 92), (4, prompts[4], 78), (4, prompts[2], 81),
-            (5, prompts[3], 88), (3, prompts[1], 72), (5, prompts[0], 90)
-        ]
-
-        for i, (rating, prompt, score) in enumerate(ratings_data):
-            demo_ratings.append({
-                'id': f"demo_rating_{i}",
-                'pattern_id': f"demo_pattern_{i}",
-                'rating': rating,
-                'timestamp': timestamps[i],
-                'session_id': f"demo_session_{i}",
-                'refined_prompt': prompt,
-                'auto_score': score
-            })
-        ratings_list = demo_ratings
 
     if ratings_list:
         # Stats
