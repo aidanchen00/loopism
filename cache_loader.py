@@ -16,8 +16,8 @@ from dataclasses import dataclass
 from loopism_core import LoopIteration
 
 CACHE_DIR = Path("precached")
-SIMULATED_DELAY_MIN = 3.0  # seconds
-SIMULATED_DELAY_MAX = 5.0  # seconds
+SIMULATED_DELAY_MIN = 2.0  # seconds - realistic loading feel
+SIMULATED_DELAY_MAX = 3.3  # seconds - total ~6-10 seconds for 3 iterations
 
 
 def get_cache_index() -> dict:

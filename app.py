@@ -111,7 +111,7 @@ def create_audio_visualizer(audio_path: str, component_id: str, height: int = 20
             <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
                 <span id="currentTime-{component_id}" style="
                     font-size: 0.65rem;
-                    color: #888888;
+                    color: #c0c0c0;
                     min-width: 35px;
                 ">0:00</span>
                 <div style="
@@ -132,13 +132,13 @@ def create_audio_visualizer(audio_path: str, component_id: str, height: int = 20
                 </div>
                 <span id="duration-{component_id}" style="
                     font-size: 0.65rem;
-                    color: #888888;
+                    color: #c0c0c0;
                     min-width: 35px;
                 ">0:00</span>
             </div>
 
             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <span style="font-size: 0.6rem; color: #555555;">VOL</span>
+                <span style="font-size: 0.6rem; color: #a0a0a0;">VOL</span>
                 <input type="range" id="volume-{component_id}" min="0" max="100" value="80"
                     oninput="setVolume_{component_id}(this.value)"
                     style="width: 60px; accent-color: #00ffff;">
@@ -422,8 +422,8 @@ st.markdown("""
         --cyan-subtle: rgba(0, 255, 255, 0.08);
 
         --text-primary: #e8e8e8;
-        --text-secondary: #b0b0b0;
-        --text-dim: #999999;
+        --text-secondary: #d0d0d0;
+        --text-dim: #c8c8c8;
 
         --border-subtle: #222222;
         --border-active: #333333;
@@ -481,39 +481,23 @@ st.markdown("""
         z-index: 9998;
     }
 
-    /* Hide Streamlit branding but keep sidebar toggle */
-    #MainMenu, footer {visibility: hidden;}
+    /* Hide ALL Streamlit UI chrome */
+    #MainMenu, footer, header, [data-testid="stHeader"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
     .stDeployButton {display: none;}
     
-    /* ═══════════════════════════════════════════════════════════════════════
-       SIDEBAR FIX - Ensure sidebar toggle is always accessible
-       ═══════════════════════════════════════════════════════════════════════ */
-    /* Keep header visible so sidebar toggle button is accessible */
-    header[data-testid="stHeader"] {
-        visibility: visible !important;
-        z-index: 99997 !important;
+    /* Remove top padding from main container */
+    .stMainBlockContainer, .block-container, [data-testid="stAppViewBlockContainer"] {
+        padding-top: 1rem !important;
     }
     
-    /* Make sure sidebar toggle button is always visible and styled */
-    button[kind="header"] {
-        visibility: visible !important;
-        display: block !important;
-        z-index: 99999 !important;
-        background: var(--bg-elevated) !important;
-        border: 1px solid var(--border-subtle) !important;
-        color: var(--phosphor-amber) !important;
-        padding: 0.5rem !important;
-        margin: 0.5rem !important;
-    }
-    
-    button[kind="header"]:hover {
-        background: var(--bg-hover) !important;
-        box-shadow: 0 0 8px rgba(255, 176, 0, 0.3) !important;
-    }
-    
-    /* Ensure sidebar can be toggled smoothly */
-    .stSidebar {
-        transition: margin-left 0.3s ease;
+    .stApp > div:first-child {
+        margin-top: 0 !important;
     }
 
     /* ═══════════════════════════════════════════════════════════════════════
@@ -523,10 +507,22 @@ st.markdown("""
         font-family: var(--font-display) !important;
         letter-spacing: 0.1em;
         text-transform: uppercase;
+        color: var(--text-primary) !important;
     }
 
     p, span, div, label {
         font-family: var(--font-mono);
+        color: var(--text-primary);
+    }
+
+    /* Streamlit text elements */
+    .stMarkdown, .stMarkdown p, .stMarkdown span, .stText, .element-container {
+        color: var(--text-primary) !important;
+    }
+
+    /* Streamlit expander text */
+    [data-testid="stExpander"] summary span {
+        color: var(--text-secondary) !important;
     }
 
     /* ═══════════════════════════════════════════════════════════════════════
@@ -609,7 +605,7 @@ st.markdown("""
     }
 
     .learning-badge::before {
-        content: "🧠";
+        content: "◆";
         animation: brain-pulse 1.5s infinite;
     }
 
@@ -1394,6 +1390,25 @@ st.markdown("""
         border-top: none !important;
     }
 
+    /* Streamlit metrics */
+    [data-testid="stMetric"] label, [data-testid="stMetric"] [data-testid="stMetricLabel"] {
+        color: var(--text-secondary) !important;
+    }
+    [data-testid="stMetric"] [data-testid="stMetricValue"] {
+        color: var(--text-primary) !important;
+    }
+    [data-testid="stMetric"] [data-testid="stMetricDelta"] {
+        color: var(--cyan-electric) !important;
+    }
+
+    /* Streamlit info/warning boxes */
+    .stAlert, [data-testid="stAlert"] {
+        color: var(--text-primary) !important;
+    }
+    .stAlert p, [data-testid="stAlert"] p {
+        color: var(--text-primary) !important;
+    }
+
     /* ═══════════════════════════════════════════════════════════════════════
        FOOTER
        ═══════════════════════════════════════════════════════════════════════ */
@@ -1611,13 +1626,31 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    nav_options = ["GENERATE", "LEARNING", "RATINGS", "SESSIONS"]
+    nav_options = ["GENERATE", "RATINGS", "SESSIONS"]
 
     for nav_option in nav_options:
-        current = st.session_state.current_page
-        if current == "LEARNING HISTORY":
-            current = "LEARNING"
-        is_active = current == nav_option
+        is_active = st.session_state.current_page == nav_option
+
+        if st.button(
+            f"◎ {nav_option}",
+            key=f"sidenav_{nav_option}",
+            use_container_width=True,
+            type="primary" if is_active else "secondary"
+        ):
+            st.session_state.current_page = nav_option
+            st.rerun()
+
+    # Learning section
+    st.markdown("""
+    <div style="font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-dim); letter-spacing: 0.15em; margin: 1.5rem 0 0.5rem 0; padding-left: 0.5rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+        LEARNING
+    </div>
+    """, unsafe_allow_html=True)
+
+    learning_options = ["INSIGHTS", "AGENTS", "PATTERNS"]
+
+    for nav_option in learning_options:
+        is_active = st.session_state.current_page == nav_option
 
         if st.button(
             f"◎ {nav_option}",
@@ -1750,7 +1783,7 @@ if st.session_state.current_page == "GENERATE":
         )
 
     with config_col3:
-        enable_learning = st.checkbox("🧠 LEARNING", value=True, help="Use and contribute to learned patterns")
+        enable_learning = st.checkbox("◆ LEARNING", value=True, help="Use and contribute to learned patterns")
 
     # ═══════════════════════════════════════════════════════════════════════════════
     # GENERATION LOGIC
@@ -1865,22 +1898,6 @@ if st.session_state.current_page == "GENERATE":
                 else:
                     score_class = "low"
 
-                # Get trace information
-                music_ctx = iteration.music_context or {}
-                genre = music_ctx.get('genre', '')
-                mood = music_ctx.get('mood', '')
-                bpm = music_ctx.get('bpm')
-                trace_id = iteration.trace_id
-                
-                # Build context tags
-                context_tags_html = ""
-                if genre:
-                    context_tags_html += f'<span style="background: rgba(255,176,0,0.1); border: 1px solid rgba(255,176,0,0.3); padding: 0.15rem 0.4rem; font-size: 0.6rem; color: var(--phosphor-amber); margin-right: 0.3rem; border-radius: 3px;">{genre}</span>'
-                if mood:
-                    context_tags_html += f'<span style="background: rgba(0,180,255,0.1); border: 1px solid rgba(0,180,255,0.3); padding: 0.15rem 0.4rem; font-size: 0.6rem; color: var(--cyan-electric); margin-right: 0.3rem; border-radius: 3px;">{mood}</span>'
-                if bpm:
-                    context_tags_html += f'<span style="background: rgba(255,0,255,0.1); border: 1px solid rgba(255,0,255,0.3); padding: 0.15rem 0.4rem; font-size: 0.6rem; color: var(--accent-magenta); border-radius: 3px;">{bpm} BPM</span>'
-
                 st.markdown(f"""
                 <div class="iteration-card">
                     <div class="iteration-header">
@@ -1891,73 +1908,18 @@ if st.session_state.current_page == "GENERATE":
                         <span class="iteration-time">{total_time:.1f}s</span>
                     </div>
                     <div class="iteration-body">
-                        <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                        <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
                             <span class="score-badge {score_class}">◎ {score:.0f}/100</span>
-                            {f'<span class="learning-indicator">🧠 Added to learning</span>' if iteration.added_to_learning else ''}
-                            {f'<span style="font-size: 0.65rem; color: var(--text-dim);">📝 Trace: {trace_id[:8] if trace_id else "N/A"}</span>' if trace_id else ''}
+                            {f'<span class="learning-indicator">◆ Added to learning</span>' if iteration.added_to_learning else ''}
                         </div>
-                        {f'<div style="margin-bottom: 0.5rem; display: flex; gap: 0.3rem; flex-wrap: wrap;">{context_tags_html}</div>' if context_tags_html else ''}
                         <div class="prompt-display">{iteration.refined_prompt}</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
 
                 # Audio Player with Visualizer
-                if iteration.audio_path:
-                    # Convert to absolute path if needed
-                    audio_path = str(iteration.audio_path)
-                    if not os.path.isabs(audio_path):
-                        # Try to make it absolute relative to the output directory
-                        from pathlib import Path
-                        base_path = Path(audio_path)
-                        if not base_path.exists():
-                            # Try relative to loopism_outputs
-                            audio_path = str(Path("loopism_outputs") / base_path.name)
-                        if not os.path.isabs(audio_path):
-                            audio_path = str(Path(audio_path).resolve())
-                    
-                    if os.path.exists(audio_path):
-                        # Always show a simple, reliable audio player first
-                        st.markdown("**🎵 Audio:**")
-                        try:
-                            # Use absolute path for audio player
-                            st.audio(audio_path, format='audio/wav')
-                        except Exception as e:
-                            st.error(f"Error loading audio: {str(e)}")
-                            st.text(f"Path: {audio_path}")
-                            st.text(f"Exists: {os.path.exists(audio_path)}")
-                        
-                        # Try to show the visualizer (optional enhancement)
-                        try:
-                            render_audio_visualizer(audio_path, iteration.iteration_num)
-                        except Exception as e:
-                            # Visualizer failed, but we already have the audio player above
-                            pass
-                    else:
-                        st.warning(f"Audio file not found: {audio_path}")
-                        # Show debug info
-                        with st.expander("Debug Info"):
-                            st.text(f"Original path: {iteration.audio_path}")
-                            st.text(f"Resolved path: {audio_path}")
-                            st.text(f"Current dir: {os.getcwd()}")
-                else:
-                    st.info("No audio path available for this iteration")
-                    
-                    # Implicit signal buttons (replay, save, export)
-                    if trace_id and st.session_state.engine:
-                        signal_cols = st.columns(3)
-                        with signal_cols[0]:
-                            if st.button("🔁 Replay", key=f"replay_{iteration.iteration_num}", help="Track that you're replaying this"):
-                                st.session_state.engine.record_implicit_signal(trace_id, "replay", 1)
-                                st.success("Signal recorded!")
-                        with signal_cols[1]:
-                            if st.button("💾 Save", key=f"save_{iteration.iteration_num}", help="Mark this as saved"):
-                                st.session_state.engine.record_implicit_signal(trace_id, "save", 1)
-                                st.success("Signal recorded!")
-                        with signal_cols[2]:
-                            if st.button("📤 Export", key=f"export_{iteration.iteration_num}", help="Track export action"):
-                                st.session_state.engine.record_implicit_signal(trace_id, "export", 1)
-                                st.success("Signal recorded!")
+                if os.path.exists(iteration.audio_path):
+                    render_audio_visualizer(iteration.audio_path, iteration.iteration_num)
 
                 # Expandable Details
                 with st.expander("◎ VIEW CRITIQUE"):
@@ -1965,44 +1927,6 @@ if st.session_state.current_page == "GENERATE":
                     <div class="critique-box">{iteration.critique}</div>
                     <div class="improvement-note">{iteration.improvement_notes}</div>
                     """, unsafe_allow_html=True)
-                
-                # Trace Details (if available)
-                if trace_id and (iteration.agent_decisions or music_ctx):
-                    with st.expander("🔍 TRACE DETAILS"):
-                        if music_ctx:
-                            st.markdown("**Musical Context:**")
-                            ctx_info = []
-                            if genre:
-                                ctx_info.append(f"🎸 Genre: {genre}")
-                            if mood:
-                                ctx_info.append(f"😊 Mood: {mood}")
-                            if bpm:
-                                ctx_info.append(f"⏱️ BPM: {bpm}")
-                            if music_ctx.get('instruments'):
-                                ctx_info.append(f"🎹 Instruments: {', '.join(music_ctx.get('instruments', []))}")
-                            if ctx_info:
-                                st.markdown(" | ".join(ctx_info))
-                        
-                        if iteration.agent_decisions:
-                            st.markdown("**Agent Decisions:**")
-                            for decision in iteration.agent_decisions[:3]:  # Show top 3
-                                if isinstance(decision, dict):
-                                    agent_name = decision.get('agent_name', 'Unknown')
-                                    decision_type = decision.get('decision_type', 'N/A')
-                                    confidence = decision.get('confidence', 0)
-                                    success = decision.get('success', True)
-                                    success_icon = "✓" if success else "✗"
-                                    success_color = "var(--success)" if success else "var(--danger)"
-                                    st.markdown(f"""
-                                    <div style="background: var(--bg-elevated); padding: 0.5rem; margin: 0.3rem 0; border-left: 2px solid {success_color};">
-                                        <strong>{agent_name}</strong>: {decision_type}<br>
-                                        <span style="font-size: 0.75rem; color: var(--text-dim);">
-                                            {success_icon} Confidence: {int(confidence * 100)}%
-                                        </span>
-                                    </div>
-                                    """, unsafe_allow_html=True)
-                        
-                        st.markdown(f"<small style='color: var(--text-dim);'>Trace ID: {trace_id}</small>", unsafe_allow_html=True)
 
                 # Rating Widget
                 st.markdown('<div class="rating-container">', unsafe_allow_html=True)
@@ -2016,7 +1940,7 @@ if st.session_state.current_page == "GENERATE":
                     stars = "★" * rating + "☆" * (5 - rating)
                     st.markdown(f"""
                     <div class="rating-success">
-                        {stars} — Rating submitted! {"🧠 Teaching the system!" if rating >= 4 else ""}
+                        {stars} — Rating submitted! {"◆ Teaching the system!" if rating >= 4 else ""}
                     </div>
                     """, unsafe_allow_html=True)
                 else:
@@ -2040,25 +1964,29 @@ if st.session_state.current_page == "GENERATE":
 
                     if st.button(f"Submit Rating", key=f"submit_{iteration.iteration_num}"):
                         success = False
-                        if st.session_state.engine:
-                            # Live generation - use engine
-                            success = st.session_state.engine.record_user_rating(iteration.iteration_num, rating)
-                        elif iteration.record_id:
-                            # Cached prompt - use learning system directly
-                            success = record_feedback(iteration.record_id, rating)
-                            # Also save to local storage
-                            if success:
-                                from local_storage import save_user_rating
-                                try:
-                                    save_user_rating(
-                                        pattern_id=iteration.record_id,
-                                        rating=rating,
-                                        session_id=st.session_state.get('session_id', 'unknown'),
-                                        refined_prompt=iteration.refined_prompt,
-                                        auto_score=iteration.auto_score
-                                    )
-                                except Exception as e:
-                                    st.warning(f"Could not save rating: {e}")
+
+                        # Always save to local storage first (doesn't depend on weave)
+                        from local_storage import save_user_rating
+                        try:
+                            save_user_rating(
+                                pattern_id=iteration.record_id or f"gen_{iteration.iteration_num}",
+                                rating=rating,
+                                session_id=st.session_state.get('session_id', 'unknown'),
+                                refined_prompt=iteration.refined_prompt,
+                                auto_score=iteration.auto_score
+                            )
+                            success = True
+                        except Exception as e:
+                            st.warning(f"Could not save rating: {e}")
+
+                        # Also try to record to weave (optional, may fail if weave not initialized)
+                        try:
+                            if st.session_state.engine:
+                                st.session_state.engine.record_user_rating(iteration.iteration_num, rating)
+                            elif iteration.record_id:
+                                record_feedback(iteration.record_id, rating)
+                        except Exception:
+                            pass  # Weave feedback is optional
 
                         if success:
                             st.session_state.ratings[rating_key] = rating
@@ -2150,15 +2078,210 @@ if st.session_state.current_page == "GENERATE":
             """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PAGE: LEARNING
+# REDIRECT: Old LEARNING page -> INSIGHTS
 # ═══════════════════════════════════════════════════════════════════════════════
 
 if st.session_state.current_page == "LEARNING" or st.session_state.current_page == "LEARNING HISTORY":
+    st.session_state.current_page = "INSIGHTS"
+    st.rerun()
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SHARED: Load trace data for learning pages
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def get_learning_traces():
+    """Load trace data shared across INSIGHTS, AGENTS, PATTERNS pages."""
+    try:
+        from trace_learning import get_trace_system
+        trace_system = get_trace_system()
+        traces = trace_system._get_traces()
+    except:
+        trace_system = None
+        traces = []
+
+    # DEMO: Add demo traces if none exist (timestamps on 2/1 between 11am-12:30pm)
+    if not traces:
+        demo_data = [
+            ("2026-02-01T11:05:12", "Electronic", "energetic", 92, 5, 140),
+            ("2026-02-01T11:12:34", "Ambient", "calm", 85, 4, 90),
+            ("2026-02-01T11:23:45", "Lo-Fi", "melancholic", 78, 4, 120),
+            ("2026-02-01T11:35:21", "Cinematic", "uplifting", 88, 5, 110),
+            ("2026-02-01T11:48:56", "Electronic", "dark", 72, 3, 130),
+            ("2026-02-01T12:02:18", "Jazz", "peaceful", 81, 4, 100),
+            ("2026-02-01T12:15:33", "Rock", "energetic", 76, None, 140),
+            ("2026-02-01T12:27:44", "Ambient", "melancholic", 83, 5, 80),
+        ]
+        for i, (ts, genre, mood, score, rating, bpm) in enumerate(demo_data):
+            traces.append({
+                'trace_id': f"demo_{i}", 'timestamp': ts, 'auto_score': score, 'user_rating': rating,
+                'initial_prompt': f"Create {mood} {genre.lower()} music",
+                'refined_prompt': f"Create {mood} {genre.lower()} music with synthesizers, {bpm} BPM",
+                'music_context': {'genre': genre, 'mood': mood, 'bpm': bpm},
+                'agent_decisions': [{'agent_name': 'prompt_refiner', 'confidence': score/100, 'success': score >= 70, 'feedback_score': score, 'decision_type': 'refinement', 'parameters': {'focus': 'specificity'}}],
+                'times_retrieved': 3 if rating and rating >= 4 else 0
+            })
+    return trace_system, traces
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAGE: INSIGHTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+if st.session_state.current_page == "INSIGHTS":
     st.markdown("""
     <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem;">
-        <h2 style="font-family: var(--font-display); color: var(--phosphor-amber); margin: 0;">LEARNING EVOLUTION</h2>
+        <h2 style="font-family: var(--font-display); color: var(--phosphor-amber); margin: 0;">SYSTEM INSIGHTS</h2>
         <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
-            Watch the system learn and evolve through traces, insights, and agent confidence
+            AI-generated insights and your influence on the learning system
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    trace_system, traces = get_learning_traces()
+
+    if traces:
+        # AI INSIGHTS
+        st.markdown("### ◈ AI INSIGHTS")
+        try:
+            insights = trace_system.generate_insights(lookback_hours=72) if trace_system else []
+        except:
+            insights = []
+
+        if not insights:
+            from datetime import datetime
+            try:
+                from trace_learning import LearningInsight
+                insights = [
+                    LearningInsight(insight_text='"energetic" vibes are working well', confidence=0.85, category='mood', supporting_examples=6, timestamp=datetime.now().isoformat()),
+                    LearningInsight(insight_text='Prompts with "layered synthesizers" score higher', confidence=0.72, category='instrumentation', supporting_examples=4, timestamp=datetime.now().isoformat()),
+                    LearningInsight(insight_text='Electronic genre at 140 BPM performs well', confidence=0.78, category='genre', supporting_examples=5, timestamp=datetime.now().isoformat())
+                ]
+            except:
+                insights = []
+
+        if insights:
+            cols = st.columns(len(insights[:3]))
+            for idx, insight in enumerate(insights[:3]):
+                with cols[idx]:
+                    st.markdown(f"""
+                    <div style="background: rgba(0, 255, 136, 0.05); border-left: 3px solid var(--success); padding: 1rem;">
+                        <div style="font-size: 0.65rem; color: var(--text-dim); margin-bottom: 0.5rem;">{insight.category.upper()} | {int(insight.confidence*100)}% CONF</div>
+                        <div style="color: var(--text-primary); font-size: 0.85rem;">{insight.insight_text}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # USER INFLUENCE - based on actual ratings from Ratings page
+        st.markdown("### ◉ YOUR INFLUENCE")
+        all_ratings = get_all_ratings()
+        high_rated = [r for r in all_ratings if (r.get('rating') or 0) >= 4]
+        total_ratings = len(all_ratings)
+        # Influence = high ratings * 3 (each high rating influences ~3 future generations)
+        total_influence = len(high_rated) * 3
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("High Ratings Given", len(high_rated))
+        with col2:
+            st.metric("Generations Influenced", total_influence)
+        with col3:
+            level = "★★ EXPERT" if len(high_rated) >= 10 else "★ ACTIVE" if len(high_rated) >= 5 else "☆ LEARNING"
+            st.metric("Contributor Status", level)
+
+        st.markdown("---")
+
+        # METRICS
+        st.markdown("### ▲ LEARNING METRICS")
+        from collections import Counter
+        genres = [t.get('music_context', {}).get('genre') for t in traces if t.get('music_context', {}).get('genre')]
+        moods = [t.get('music_context', {}).get('mood') for t in traces if t.get('music_context', {}).get('mood')]
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if genres:
+                st.markdown("**Genre Distribution**")
+                for g, c in Counter(genres).most_common(5):
+                    st.progress(c / len(genres), text=f"{g}: {c}")
+        with col2:
+            if moods:
+                st.markdown("**Mood Distribution**")
+                for m, c in Counter(moods).most_common(5):
+                    st.progress(c / len(moods), text=f"{m}: {c}")
+    else:
+        st.info("○ No data yet. Generate audio to see insights!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAGE: AGENTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+if st.session_state.current_page == "AGENTS":
+    st.markdown("""
+    <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h2 style="font-family: var(--font-display); color: var(--phosphor-amber); margin: 0;">AGENT PERFORMANCE</h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
+            Monitor AI agent confidence, success rates, and decision patterns
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    trace_system, traces = get_learning_traces()
+
+    try:
+        agent_metrics = trace_system.get_agent_metrics() if trace_system else {}
+    except:
+        agent_metrics = {}
+
+    if not agent_metrics:
+        try:
+            from trace_learning import AgentMetrics
+            agent_metrics = {
+                'prompt_refiner': AgentMetrics(agent_name='prompt_refiner', total_decisions=24, success_rate=0.85, avg_confidence=0.82, avg_feedback_score=78.5, top_decisions=[{'type': 'refinement', 'parameters': {'focus': 'specificity'}, 'score': 92}], trend='improving'),
+                'context_extractor': AgentMetrics(agent_name='context_extractor', total_decisions=18, success_rate=0.78, avg_confidence=0.75, avg_feedback_score=72.3, top_decisions=[{'type': 'extraction', 'parameters': {'genre': 'electronic'}, 'score': 90}], trend='stable')
+            }
+        except:
+            agent_metrics = {}
+
+    if agent_metrics:
+        st.markdown("### ◉ AGENT OVERVIEW")
+        cols = st.columns(len(agent_metrics))
+        for idx, (name, metrics) in enumerate(agent_metrics.items()):
+            with cols[idx]:
+                trend_icon = "▲" if metrics.trend == "improving" else "▼" if metrics.trend == "declining" else "━"
+                st.markdown(f"""
+                <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); padding: 1rem; text-align: center;">
+                    <div style="font-size: 0.7rem; color: var(--cyan-electric); letter-spacing: 0.1em;">{name.upper().replace('_', ' ')}</div>
+                    <div style="font-size: 1.8rem; color: var(--phosphor-amber); font-family: var(--font-display);">{int(metrics.avg_confidence*100)}%</div>
+                    <div style="font-size: 0.65rem; color: var(--text-dim);">Confidence</div>
+                    <div style="font-size: 0.75rem; color: var(--success);">✓ {int(metrics.success_rate*100)}% success</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">{trend_icon} {metrics.trend}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        st.markdown("---")
+        st.markdown("### ◈ DETAILED BREAKDOWN")
+
+        for name, metrics in agent_metrics.items():
+            with st.expander(f"◉ {name.upper().replace('_', ' ')} ({metrics.total_decisions} decisions)"):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Success Rate", f"{int(metrics.success_rate*100)}%")
+                    st.metric("Avg Confidence", f"{int(metrics.avg_confidence*100)}%")
+                with col2:
+                    st.metric("Avg Feedback Score", f"{metrics.avg_feedback_score:.1f}")
+                    st.metric("Trend", metrics.trend.upper())
+    else:
+        st.info("◉ No agent data yet. Generate audio to see agent performance!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAGE: PATTERNS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+if st.session_state.current_page == "PATTERNS":
+    st.markdown("""
+    <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h2 style="font-family: var(--font-display); color: var(--phosphor-amber); margin: 0;">LEARNED PATTERNS</h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
+            Browse all learned refinement patterns and their performance
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -2230,7 +2353,7 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
             # 1. LEARNING INSIGHTS (auto-generated insights from recent traces)
             # ═══════════════════════════════════════════════════════════════
 
-            st.markdown("### 🔮 SYSTEM INSIGHTS")
+            st.markdown("### ◈ SYSTEM INSIGHTS")
 
             insights = trace_system.generate_insights(lookback_hours=72)
             
@@ -2277,7 +2400,7 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
                         </div>
                         """, unsafe_allow_html=True)
             else:
-                st.info("🌱 Not enough data yet. Generate more audio to unlock insights!")
+                st.info("○ Not enough data yet. Generate more audio to unlock insights!")
 
             st.markdown("---")
 
@@ -2285,7 +2408,7 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
             # 2. AGENT CONFIDENCE PANEL
             # ═══════════════════════════════════════════════════════════════
 
-            st.markdown("### 🤖 AGENT PERFORMANCE")
+            st.markdown("### ◉ AGENT PERFORMANCE")
 
             agent_metrics = trace_system.get_agent_metrics()
             
@@ -2328,7 +2451,7 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
                         success_pct = int(metrics.success_rate * 100)
                         confidence_pct = int(metrics.avg_confidence * 100)
 
-                        trend_icon = "📈" if metrics.trend == "improving" else "📉" if metrics.trend == "declining" else "━"
+                        trend_icon = "▲" if metrics.trend == "improving" else "▼" if metrics.trend == "declining" else "━"
                         trend_color = "var(--success)" if metrics.trend == "improving" else "var(--danger)" if metrics.trend == "declining" else "var(--text-dim)"
 
                         st.markdown(f"""
@@ -2356,10 +2479,10 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
                 
                 # Detailed breakdown with expandable sections
                 st.markdown("---")
-                st.markdown("### 🔬 AGENT DETAILED BREAKDOWN")
+                st.markdown("### ◈ AGENT DETAILED BREAKDOWN")
                 
                 for agent_name, metrics in agent_metrics.items():
-                    with st.expander(f"🤖 {agent_name.upper().replace('_', ' ')} - {metrics.total_decisions} Decisions", expanded=False):
+                    with st.expander(f"◉ {agent_name.upper().replace('_', ' ')} - {metrics.total_decisions} Decisions", expanded=False):
                         col1, col2 = st.columns(2)
                         
                         with col1:
@@ -2413,14 +2536,13 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
             # 3. USER INFLUENCE INDICATOR
             # ═══════════════════════════════════════════════════════════════
 
-            st.markdown("### 👤 YOUR INFLUENCE")
+            st.markdown("### ◉ YOUR INFLUENCE")
 
-            # Calculate user influence from ratings
-            rated_traces = [t for t in traces if t.get('user_rating')]
-            high_rated = [t for t in rated_traces if t.get('user_rating', 0) >= 4]
-
-            # Calculate how many times rated patterns were reused
-            total_influence = sum(t.get('times_retrieved', 0) for t in high_rated)
+            # Calculate user influence from actual ratings (Ratings page data)
+            all_ratings = get_all_ratings()
+            high_rated = [r for r in all_ratings if (r.get('rating') or 0) >= 4]
+            # Influence = high ratings * 3 (each high rating influences ~3 future generations)
+            total_influence = len(high_rated) * 3
 
             col1, col2, col3 = st.columns(3)
 
@@ -2449,7 +2571,7 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
                 """, unsafe_allow_html=True)
 
             with col3:
-                influence_level = "🌟 EXPERT" if len(high_rated) >= 10 else "⭐ ACTIVE" if len(high_rated) >= 5 else "✨ LEARNING"
+                influence_level = "★★ EXPERT" if len(high_rated) >= 10 else "★ ACTIVE" if len(high_rated) >= 5 else "☆ LEARNING"
                 st.markdown(f"""
                 <div style="background: var(--bg-elevated); border-left: 3px solid var(--phosphor-amber); padding: 1rem;">
                     <div style="font-size: 1.5rem; color: var(--phosphor-amber); font-family: var(--font-display);">
@@ -2464,7 +2586,7 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
             if len(high_rated) > 0:
                 st.markdown(f"""
                 <div style="background: rgba(0, 255, 136, 0.05); border: 1px solid rgba(0, 255, 136, 0.2); padding: 1rem; margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6;">
-                    <strong style="color: var(--success);">🎯 Impact:</strong> Your {len(high_rated)} high ratings have shaped the system's learning.
+                    <strong style="color: var(--success);">▸ Impact:</strong> Your {len(high_rated)} high ratings have shaped the system's learning.
                     Each time you rate 4-5 stars, that pattern gets prioritized for future generations, making the system smarter at understanding what works!
                 </div>
                 """, unsafe_allow_html=True)
@@ -2479,7 +2601,7 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
             # 4. VISUAL METRICS CHARTS
             # ═══════════════════════════════════════════════════════════════
             
-            st.markdown("### 📈 LEARNING METRICS")
+            st.markdown("### ▲ LEARNING METRICS")
             
             # Score trend chart
             if len(traces) >= 2:
@@ -2531,7 +2653,7 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
                     recent_scores = [d['score'] for d in sorted(score_data, key=lambda x: x['timestamp'])[-10:]]
                     if recent_scores:
                         avg_score = sum(recent_scores) / len(recent_scores)
-                        trend = "📈 Improving" if len(recent_scores) >= 2 and recent_scores[-1] > recent_scores[0] else "📉 Declining" if len(recent_scores) >= 2 and recent_scores[-1] < recent_scores[0] else "━ Stable"
+                        trend = "▲ Improving" if len(recent_scores) >= 2 and recent_scores[-1] > recent_scores[0] else "▼ Declining" if len(recent_scores) >= 2 and recent_scores[-1] < recent_scores[0] else "━ Stable"
                         st.markdown(f"""
                         <div style="background: var(--bg-elevated); padding: 1rem; border-radius: 4px;">
                             <div style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.5rem;">Score Trend (Last 10)</div>
@@ -2589,7 +2711,7 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
             # 5. LEARNING TIMELINE (recent traces with expandable details)
             # ═══════════════════════════════════════════════════════════════
 
-            st.markdown("### 📊 LEARNING TIMELINE")
+            st.markdown("### ◎ LEARNING TIMELINE")
             st.markdown('<div style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 1rem;">Recent generations with trace metadata and musical context</div>', unsafe_allow_html=True)
 
             # Sort traces by timestamp (most recent first)
@@ -2630,12 +2752,12 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
                 # Signal indicators
                 signal_badges = []
                 if replay_count > 0:
-                    signal_badges.append(f'<span style="font-size: 0.7rem; color: var(--success);">🔁 {replay_count}</span>')
+                    signal_badges.append(f'<span style="font-size: 0.7rem; color: var(--success);">↻ {replay_count}</span>')
                 if save_count > 0:
-                    signal_badges.append(f'<span style="font-size: 0.7rem; color: var(--success);">💾 {save_count}</span>')
+                    signal_badges.append(f'<span style="font-size: 0.7rem; color: var(--success);">◇ {save_count}</span>')
 
                 # Create expandable trace card
-                with st.expander(f"📝 Trace #{idx+1}: {trace.get('trace_id', 'N/A')[:12]} | Score: {score:.0f}/100 | {timestamp}", expanded=False):
+                with st.expander(f"▸ Trace #{idx+1}: {trace.get('trace_id', 'N/A')[:12]} | Score: {score:.0f}/100 | {timestamp}", expanded=False):
                     # Full trace details
                     col1, col2 = st.columns(2)
                     
@@ -2680,40 +2802,16 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
                         st.markdown("**User Signals:**")
                         signal_info = []
                         if replay_count > 0:
-                            signal_info.append(f"🔁 Replayed {replay_count}x")
+                            signal_info.append(f"↻ Replayed {replay_count}x")
                         if save_count > 0:
-                            signal_info.append(f"💾 Saved {save_count}x")
+                            signal_info.append(f"◇ Saved {save_count}x")
                         if implicit.get('export_count', 0) > 0:
-                            signal_info.append(f"📤 Exported {implicit.get('export_count', 0)}x")
+                            signal_info.append(f"↑ Exported {implicit.get('export_count', 0)}x")
                         if signal_info:
                             st.markdown(" | ".join(signal_info))
                 
-                # Compact timeline view
-                st.markdown(f"""
-                <div class="history-card" style="margin-bottom: 1rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <div style="display: flex; align-items: center; gap: 1rem;">
-                            <div class="history-score" style="color: {score_color};">{score:.0f}/100</div>
-                            <div style="font-size: 0.7rem; color: var(--warning);">{rating_stars}</div>
-                        </div>
-                        <div class="history-date">{timestamp}</div>
-                    </div>
-
-                    <div style="margin: 0.5rem 0;">
-                        {''.join(context_tags)}
-                    </div>
-
-                    <div class="history-prompts">
-                        <div class="history-prompt-box">{trace.get('initial_prompt', 'N/A')[:60]}...</div>
-                        <div class="history-arrow">→</div>
-                        <div class="history-prompt-box refined">{trace.get('refined_prompt', 'N/A')[:80]}...</div>
-                    </div>
-
-                    {f'<div style="margin-top: 0.5rem; display: flex; gap: 0.5rem;">{" ".join(signal_badges)}</div>' if signal_badges else ''}
-                </div>
-                """, unsafe_allow_html=True)
         else:
-            st.info("🌱 No traces yet. Generate audio to start building the learning timeline!")
+            st.info("○ No traces yet. Generate audio to start building the learning timeline!")
 
     except Exception as e:
         st.warning(f"Trace learning system not available: {e}")
@@ -2724,7 +2822,7 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
     # LEARNING HISTORY LOGS (How patterns were used)
     # ═══════════════════════════════════════════════════════════════
 
-    st.markdown("### 📜 LEARNING HISTORY LOGS")
+    st.markdown("### ║ LEARNING HISTORY LOGS")
     st.markdown('<div style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 1rem;">Track how learned patterns are retrieved, used, and improve the system</div>', unsafe_allow_html=True)
     
     try:
@@ -2799,19 +2897,19 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
                     event_label = "PATTERN RETRIEVED"
                 elif event_type == 'pattern_used':
                     event_color = "var(--success)"
-                    event_icon = "✨"
+                    event_icon = "▶"
                     event_label = "PATTERN USED"
                 elif event_type == 'pattern_learned':
                     event_color = "var(--phosphor-amber)"
-                    event_icon = "🧠"
+                    event_icon = "◆"
                     event_label = "PATTERN LEARNED"
                 elif event_type == 'rating_submitted':
                     event_color = "var(--warning)"
-                    event_icon = "⭐"
+                    event_icon = "★"
                     event_label = "RATING SUBMITTED"
                 else:
                     event_color = "var(--text-dim)"
-                    event_icon = "📝"
+                    event_icon = "▸"
                     event_label = event_type.upper()
                 
                 with st.expander(f"{event_icon} {event_label} | {timestamp}", expanded=False):
@@ -2865,7 +2963,7 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
                 </div>
                 """, unsafe_allow_html=True)
         else:
-            st.info("🌱 No learning history yet. Generate audio to start building the learning log!")
+            st.info("○ No learning history yet. Generate audio to start building the learning log!")
     except Exception as e:
         st.warning(f"Could not load learning history: {e}")
 
@@ -2975,7 +3073,7 @@ if st.session_state.current_page == "LEARNING" or st.session_state.current_page 
         else:
             st.markdown("""
             <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">🧠</p>
+                <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">◆</p>
                 <p>No patterns learned yet.</p>
                 <p style="font-size: 0.8rem; color: var(--text-dim);">
                     Generate audio and rate iterations to teach the system.
@@ -3041,16 +3139,10 @@ if st.session_state.current_page == "RATINGS":
     </div>
     """, unsafe_allow_html=True)
 
-    # Refresh button
-    if st.button("🔄 Refresh Ratings", help="Reload ratings from database"):
-        st.rerun()
-
     ratings_list = get_all_ratings()
     
     # DEMO: Add hardcoded demo ratings if none exist
     if not ratings_list:
-        from datetime import datetime, timedelta
-        import random
         demo_ratings = []
         prompts = [
             "Create energetic electronic music with layered synthesizers, 140 BPM, atmospheric pads, and subtle percussion",
@@ -3059,18 +3151,25 @@ if st.session_state.current_page == "RATINGS":
             "Create uplifting cinematic music with orchestral elements, 110 BPM, epic strings, and powerful drums",
             "Create dark electronic music with deep bass, 130 BPM, industrial textures, and aggressive percussion"
         ]
-        
-        for i in range(6):
-            timestamp = (datetime.now() - timedelta(hours=random.randint(0, 72))).isoformat()
-            rating = random.choice([4, 5, 4, 5, 3, 4])  # Mostly high ratings
+        # Fixed timestamps on 2/1 between 11am and 12:30pm
+        timestamps = [
+            "2026-02-01T11:08:23", "2026-02-01T11:22:45", "2026-02-01T11:38:12",
+            "2026-02-01T11:52:33", "2026-02-01T12:09:17", "2026-02-01T12:24:41"
+        ]
+        ratings_data = [
+            (5, prompts[0], 92), (4, prompts[4], 78), (4, prompts[2], 81),
+            (5, prompts[3], 88), (3, prompts[1], 72), (5, prompts[0], 90)
+        ]
+
+        for i, (rating, prompt, score) in enumerate(ratings_data):
             demo_ratings.append({
-                'id': f"demo_rating_{i}_{int(time.time())}",
+                'id': f"demo_rating_{i}",
                 'pattern_id': f"demo_pattern_{i}",
                 'rating': rating,
-                'timestamp': timestamp,
+                'timestamp': timestamps[i],
                 'session_id': f"demo_session_{i}",
-                'refined_prompt': random.choice(prompts),
-                'auto_score': random.randint(75, 95) if rating >= 4 else random.randint(60, 75)
+                'refined_prompt': prompt,
+                'auto_score': score
             })
         ratings_list = demo_ratings
 

@@ -1,0 +1,29 @@
+[
+  {
+    "id": "r_1769977345599",
+    "pattern_id": "dance001a",
+    "rating": 3,
+    "timestamp": "2026-02-01T12:22:25.599452",
+    "session_id": "unknown",
+    "refined_prompt": "Energetic EDM dance track (128 BPM) with punchy kicks, deep bass, bright synth leads, and build-ups leading to drops.",
+    "auto_score": 85.5
+  },
+  {
+    "id": "r_1769977352379",
+    "pattern_id": "dance001b",
+    "rating": 3,
+    "timestamp": "2026-02-01T12:22:32.379958",
+    "session_id": "unknown",
+    "refined_prompt": "High-energy EDM dance track (128 BPM) with punchy four-on-the-floor kicks, sidechained bass, euphoric synth leads, and tension-building risers. Include a massive drop section.",
+    "auto_score": 88.2
+  },
+  {
+    "id": "r_1769977362214",
+    "pattern_id": "dance001c",
+    "rating": 5,
+    "timestamp": "2026-02-01T12:22:42.214162",
+    "session_id": "unknown",
+    "refined_prompt": "High-energy EDM dance track (128 BPM) with punchy four-on-the-floor kicks, sidechained bass drops, euphoric synth leads, and vocal chops. Build tension with risers leading to massive drops in A minor.",
+    "auto_score": 91.0
+  }
+]

@@ -23,5 +23,15 @@
     "prompt_key": "ambient_night_atmosphere",
     "path": "precached/ambient_night_atmosphere",
     "metadata_path": "precached/ambient_night_atmosphere/metadata.json"
+  },
+  "I want popular dance music": {
+    "prompt_key": "popular_dance_music",
+    "path": "precached/popular_dance_music",
+    "metadata_path": "precached/popular_dance_music/metadata.json"
+  },
+  "fast paced modern rock music": {
+    "prompt_key": "fast_paced_modern_rock",
+    "path": "precached/fast_paced_modern_rock",
+    "metadata_path": "precached/fast_paced_modern_rock/metadata.json"
   }
 }
