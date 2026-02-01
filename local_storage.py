@@ -295,13 +295,24 @@ def get_stats() -> dict:
 
 def import_from_precached():
     """Import patterns from pre-generated cache into local storage."""
-    from cache_loader import get_all_cached_prompts, load_cached_metadata
+    # Direct file access to avoid circular imports with weave
+    cache_dir = Path("precached")
+    index_path = cache_dir / "index.json"
+
+    if not index_path.exists():
+        return 0
+
+    with open(index_path) as f:
+        index = json.load(f)
 
     imported = 0
-    for prompt in get_all_cached_prompts():
-        metadata = load_cached_metadata(prompt)
-        if not metadata:
+    for prompt, info in index.items():
+        metadata_path = Path(info.get("metadata_path", ""))
+        if not metadata_path.exists():
             continue
+
+        with open(metadata_path) as f:
+            metadata = json.load(f)
 
         for it in metadata.get("iterations_data", []):
             # Check if already imported (by checking refined_prompt)

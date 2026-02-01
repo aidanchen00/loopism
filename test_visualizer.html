@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Visualizer Test - Loopism</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', monospace;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        /* Scanline overlay */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: #ffb000;
+            text-shadow: 0 0 20px rgba(255, 176, 0, 0.6);
+            letter-spacing: 0.2em;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .test-info {
+            background: #0d0d0d;
+            border: 1px solid #333;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .test-info h3 {
+            color: #00ffff;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .visualizer-container {
+            background: #0a0a0a;
+            border: 1px solid #333333;
+            padding: 1rem;
+            margin: 1rem 0;
+            max-width: 600px;
+            margin: 2rem auto;
+        }
+
+        .label {
+            font-size: 0.6rem;
+            color: #00ff88;
+            letter-spacing: 0.2em;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        #canvas {
+            width: 100%;
+            height: 150px;
+            background: linear-gradient(180deg, #0a0a0a 0%, #0d0d0d 100%);
+            border: 1px solid #222222;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #222222;
+        }
+
+        #playBtn {
+            background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+            border: 1px solid #ffb000;
+            color: #ffb000;
+            padding: 0.5rem 1.5rem;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(255, 176, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        #playBtn:hover {
+            box-shadow: 0 0 20px rgba(255, 176, 0, 0.4);
+        }
+
+        #playBtn.playing {
+            border-color: #00ffff;
+            color: #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+
+        .time-display {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .time {
+            font-size: 0.65rem;
+            color: #888;
+            min-width: 35px;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 4px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #ffb000, #00ffff);
+            width: 0%;
+            box-shadow: 0 0 8px rgba(255, 176, 0, 0.6);
+            transition: width 0.1s linear;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .volume-label {
+            font-size: 0.6rem;
+            color: #555;
+        }
+
+        #volumeSlider {
+            width: 60px;
+            accent-color: #00ffff;
+        }
+
+        .file-input-wrapper {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .file-label {
+            display: inline-block;
+            background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            padding: 0.75rem 2rem;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .file-label:hover {
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+        }
+
+        .file-name {
+            margin-top: 0.5rem;
+            font-size: 0.7rem;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>◎ VISUALIZER TEST</h1>
+
+    <div class="test-info">
+        <h3>How to Test:</h3>
+        <ol>
+            <li>Click "SELECT AUDIO FILE" and choose a .wav or .mp3 file</li>
+            <li>Click "PLAY" to start playback and see the frequency visualization</li>
+            <li>The bars should react to the audio frequency in real-time</li>
+            <li>Colors range across the spectrum (purple → red → yellow → green → cyan)</li>
+        </ol>
+    </div>
+
+    <div class="file-input-wrapper">
+        <input type="file" id="fileInput" accept="audio/*">
+        <label for="fileInput" class="file-label">◎ SELECT AUDIO FILE</label>
+        <div class="file-name" id="fileName">No file selected</div>
+    </div>
+
+    <div class="visualizer-container">
+        <div class="label">◎ FREQUENCY SPECTRUM</div>
+        <canvas id="canvas" width="560" height="150"></canvas>
+
+        <div class="controls">
+            <button id="playBtn" onclick="togglePlay()">▶ PLAY</button>
+
+            <div class="time-display">
+                <span class="time" id="currentTime">0:00</span>
+                <div class="progress-bar" id="progressBar" onclick="seek(event)">
+                    <div class="progress" id="progress"></div>
+                </div>
+                <span class="time" id="duration">0:00</span>
+            </div>
+
+            <div class="volume-control">
+                <span class="volume-label">VOL</span>
+                <input type="range" id="volumeSlider" min="0" max="100" value="80" oninput="setVolume(this.value)">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const playBtn = document.getElementById('playBtn');
+        const currentTimeEl = document.getElementById('currentTime');
+        const durationEl = document.getElementById('duration');
+        const progressEl = document.getElementById('progress');
+        const progressBar = document.getElementById('progressBar');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameEl = document.getElementById('fileName');
+
+        let audioContext = null;
+        let analyser = null;
+        let source = null;
+        let audio = null;
+        let isPlaying = false;
+        let animationId = null;
+        let dataArray = null;
+
+        // Set canvas resolution
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            drawIdleState();
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // File input handler
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                fileNameEl.textContent = file.name;
+                loadAudioFile(file);
+            }
+        });
+
+        function loadAudioFile(file) {
+            if (audio) {
+                audio.pause();
+                isPlaying = false;
+                playBtn.innerHTML = '▶ PLAY';
+                playBtn.classList.remove('playing');
+            }
+
+            const url = URL.createObjectURL(file);
+            audio = new Audio(url);
+            audio.volume = document.getElementById('volumeSlider').value / 100;
+
+            audio.addEventListener('loadedmetadata', function() {
+                durationEl.textContent = formatTime(audio.duration);
+                playBtn.disabled = false;
+            });
+
+            audio.addEventListener('timeupdate', function() {
+                currentTimeEl.textContent = formatTime(audio.currentTime);
+                const percent = (audio.currentTime / audio.duration) * 100;
+                progressEl.style.width = percent + '%';
+            });
+
+            audio.addEventListener('ended', function() {
+                isPlaying = false;
+                playBtn.innerHTML = '▶ PLAY';
+                playBtn.classList.remove('playing');
+                if (animationId) cancelAnimationFrame(animationId);
+                drawIdleState();
+            });
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return mins + ':' + (secs < 10 ? '0' : '') + secs;
+        }
+
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                analyser.smoothingTimeConstant = 0.8;
+
+                source = audioContext.createMediaElementSource(audio);
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+            }
+        }
+
+        function drawIdleState() {
+            const width = canvas.width;
+            const height = canvas.height;
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw subtle grid
+            ctx.strokeStyle = 'rgba(255, 176, 0, 0.05)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < width; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, height);
+                ctx.stroke();
+            }
+            for (let i = 0; i < height; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(width, i);
+                ctx.stroke();
+            }
+
+            // Draw idle bars
+            const barCount = 64;
+            const barWidth = (width / barCount) - 2;
+            const centerY = height / 2;
+
+            for (let i = 0; i < barCount; i++) {
+                const x = i * (barWidth + 2);
+                const idleHeight = 4 + Math.sin(i * 0.2) * 2;
+
+                const gradient = ctx.createLinearGradient(0, centerY - idleHeight, 0, centerY + idleHeight);
+                gradient.addColorStop(0, 'rgba(255, 176, 0, 0.3)');
+                gradient.addColorStop(0.5, 'rgba(0, 255, 255, 0.2)');
+                gradient.addColorStop(1, 'rgba(255, 176, 0, 0.3)');
+
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, centerY - idleHeight, barWidth, idleHeight * 2);
+            }
+        }
+
+        function draw() {
+            if (!isPlaying) return;
+
+            animationId = requestAnimationFrame(draw);
+            analyser.getByteFrequencyData(dataArray);
+
+            const width = canvas.width;
+            const height = canvas.height;
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 176, 0, 0.03)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < width; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, height);
+                ctx.stroke();
+            }
+
+            // Draw frequency bars
+            const barCount = 64;
+            const barWidth = (width / barCount) - 2;
+            const centerY = height / 2;
+
+            for (let i = 0; i < barCount; i++) {
+                const dataIndex = Math.floor(i * (dataArray.length / barCount));
+                const value = dataArray[dataIndex];
+                const barHeight = (value / 255) * (height * 0.45);
+                const x = i * (barWidth + 2);
+
+                // Rainbow color spectrum (purple -> red -> yellow -> green -> cyan)
+                const hue = (i / barCount) * 300 + 270;
+                const saturation = 80 + (value / 255) * 20;
+                const lightness = 45 + (value / 255) * 15;
+
+                // Main bar gradient
+                const gradient = ctx.createLinearGradient(0, centerY - barHeight, 0, centerY + barHeight);
+                gradient.addColorStop(0, `hsla(${hue}, ${saturation}%, ${lightness + 20}%, 0.9)`);
+                gradient.addColorStop(0.3, `hsla(${hue}, ${saturation}%, ${lightness}%, 1)`);
+                gradient.addColorStop(0.5, `hsla(${hue}, ${saturation + 10}%, ${lightness + 10}%, 1)`);
+                gradient.addColorStop(0.7, `hsla(${hue}, ${saturation}%, ${lightness}%, 1)`);
+                gradient.addColorStop(1, `hsla(${hue}, ${saturation}%, ${lightness + 20}%, 0.9)`);
+
+                ctx.fillStyle = gradient;
+
+                // Draw bar (symmetric around center)
+                ctx.fillRect(x, centerY - barHeight, barWidth, barHeight * 2);
+
+                // Glow effect
+                ctx.shadowColor = `hsla(${hue}, 100%, 60%, 0.5)`;
+                ctx.shadowBlur = 8;
+                ctx.fillRect(x, centerY - barHeight, barWidth, barHeight * 2);
+                ctx.shadowBlur = 0;
+
+                // Reflection (subtle)
+                const reflectionGradient = ctx.createLinearGradient(0, centerY + barHeight, 0, centerY + barHeight + barHeight * 0.4);
+                reflectionGradient.addColorStop(0, `hsla(${hue}, ${saturation}%, ${lightness}%, 0.3)`);
+                reflectionGradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = reflectionGradient;
+                ctx.fillRect(x, centerY + barHeight, barWidth, barHeight * 0.4);
+            }
+        }
+
+        function togglePlay() {
+            if (!audio) {
+                alert('Please select an audio file first');
+                return;
+            }
+
+            initAudioContext();
+
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            if (isPlaying) {
+                audio.pause();
+                isPlaying = false;
+                playBtn.innerHTML = '▶ PLAY';
+                playBtn.classList.remove('playing');
+                if (animationId) cancelAnimationFrame(animationId);
+            } else {
+                audio.play();
+                isPlaying = true;
+                playBtn.innerHTML = '⏸ PAUSE';
+                playBtn.classList.add('playing');
+                draw();
+            }
+        }
+
+        function seek(event) {
+            if (!audio) return;
+            const rect = progressBar.getBoundingClientRect();
+            const percent = (event.clientX - rect.left) / rect.width;
+            audio.currentTime = percent * audio.duration;
+        }
+
+        function setVolume(value) {
+            if (audio) {
+                audio.volume = value / 100;
+            }
+        }
+
+        // Initial draw
+        drawIdleState();
+    </script>
+</body>
+</html>

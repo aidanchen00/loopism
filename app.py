@@ -18,9 +18,11 @@ Aesthetic: Retrofuturist Terminal / Mission Control
 
 import os
 import time
+import base64
 from pathlib import Path
 from dotenv import load_dotenv
 import streamlit as st
+import streamlit.components.v1 as components
 
 load_dotenv()
 
@@ -33,6 +35,349 @@ from cache_loader import (
     stream_cached_iterations,
     verify_cache_integrity
 )
+from local_storage import (
+    get_stats as get_local_stats,
+    save_learned_pattern,
+    save_user_rating,
+    get_all_patterns,
+    get_all_ratings,
+    get_all_sessions
+)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AUDIO VISUALIZER COMPONENT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def create_audio_visualizer(audio_path: str, component_id: str, height: int = 200) -> str:
+    """
+    Create an HTML/JS audio visualizer with frequency bars that respond to audio playback.
+    Uses Web Audio API for real-time frequency analysis.
+    """
+    # Read and encode audio file as base64
+    with open(audio_path, 'rb') as f:
+        audio_data = base64.b64encode(f.read()).decode('utf-8')
+
+    # Determine MIME type
+    ext = Path(audio_path).suffix.lower()
+    mime_types = {'.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4'}
+    mime_type = mime_types.get(ext, 'audio/wav')
+
+    html = f'''
+    <div id="visualizer-container-{component_id}" style="
+        background: #0a0a0a;
+        border: 1px solid #333333;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        font-family: 'JetBrains Mono', monospace;
+    ">
+        <div style="
+            font-size: 0.6rem;
+            color: #00ff88;
+            letter-spacing: 0.2em;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        ">◎ FREQUENCY SPECTRUM</div>
+
+        <canvas id="canvas-{component_id}" width="400" height="{height}" style="
+            width: 100%;
+            height: {height}px;
+            background: linear-gradient(180deg, #0a0a0a 0%, #0d0d0d 100%);
+            border: 1px solid #222222;
+        "></canvas>
+
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #222222;
+        ">
+            <button id="playBtn-{component_id}" onclick="togglePlay_{component_id}()" style="
+                background: linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
+                border: 1px solid #ffb000;
+                color: #ffb000;
+                padding: 0.5rem 1.5rem;
+                font-family: 'Orbitron', sans-serif;
+                font-size: 0.7rem;
+                letter-spacing: 0.15em;
+                cursor: pointer;
+                text-transform: uppercase;
+                box-shadow: 0 0 10px rgba(255, 176, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+                transition: all 0.2s ease;
+            ">▶ PLAY</button>
+
+            <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
+                <span id="currentTime-{component_id}" style="
+                    font-size: 0.65rem;
+                    color: #888888;
+                    min-width: 35px;
+                ">0:00</span>
+                <div style="
+                    flex: 1;
+                    height: 4px;
+                    background: #1a1a1a;
+                    border: 1px solid #333333;
+                    position: relative;
+                    cursor: pointer;
+                " id="progressBar-{component_id}" onclick="seek_{component_id}(event)">
+                    <div id="progress-{component_id}" style="
+                        height: 100%;
+                        background: linear-gradient(90deg, #ffb000, #00ffff);
+                        width: 0%;
+                        box-shadow: 0 0 8px rgba(255, 176, 0, 0.6);
+                        transition: width 0.1s linear;
+                    "></div>
+                </div>
+                <span id="duration-{component_id}" style="
+                    font-size: 0.65rem;
+                    color: #888888;
+                    min-width: 35px;
+                ">0:00</span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 0.6rem; color: #555555;">VOL</span>
+                <input type="range" id="volume-{component_id}" min="0" max="100" value="80"
+                    oninput="setVolume_{component_id}(this.value)"
+                    style="width: 60px; accent-color: #00ffff;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function() {{
+        const componentId = "{component_id}";
+        const canvas = document.getElementById("canvas-" + componentId);
+        const ctx = canvas.getContext("2d");
+        const playBtn = document.getElementById("playBtn-" + componentId);
+        const currentTimeEl = document.getElementById("currentTime-" + componentId);
+        const durationEl = document.getElementById("duration-" + componentId);
+        const progressEl = document.getElementById("progress-" + componentId);
+        const progressBar = document.getElementById("progressBar-" + componentId);
+
+        let audioContext = null;
+        let analyser = null;
+        let source = null;
+        let audio = null;
+        let isPlaying = false;
+        let animationId = null;
+        let dataArray = null;
+
+        // Initialize audio
+        audio = new Audio("data:{mime_type};base64,{audio_data}");
+        audio.volume = 0.8;
+        audio.crossOrigin = "anonymous";
+
+        audio.addEventListener('loadedmetadata', function() {{
+            durationEl.textContent = formatTime(audio.duration);
+        }});
+
+        audio.addEventListener('timeupdate', function() {{
+            currentTimeEl.textContent = formatTime(audio.currentTime);
+            const percent = (audio.currentTime / audio.duration) * 100;
+            progressEl.style.width = percent + "%";
+        }});
+
+        audio.addEventListener('ended', function() {{
+            isPlaying = false;
+            playBtn.innerHTML = "▶ PLAY";
+            playBtn.style.borderColor = "#ffb000";
+            playBtn.style.color = "#ffb000";
+            if (animationId) cancelAnimationFrame(animationId);
+            drawIdleState();
+        }});
+
+        function formatTime(seconds) {{
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return mins + ":" + (secs < 10 ? "0" : "") + secs;
+        }}
+
+        function initAudioContext() {{
+            if (!audioContext) {{
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                analyser.smoothingTimeConstant = 0.8;
+
+                source = audioContext.createMediaElementSource(audio);
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+            }}
+        }}
+
+        function drawIdleState() {{
+            const width = canvas.width;
+            const height = canvas.height;
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw subtle grid
+            ctx.strokeStyle = "rgba(255, 176, 0, 0.05)";
+            ctx.lineWidth = 1;
+            for (let i = 0; i < width; i += 20) {{
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, height);
+                ctx.stroke();
+            }}
+            for (let i = 0; i < height; i += 20) {{
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(width, i);
+                ctx.stroke();
+            }}
+
+            // Draw idle bars
+            const barCount = 64;
+            const barWidth = (width / barCount) - 2;
+            const centerY = height / 2;
+
+            for (let i = 0; i < barCount; i++) {{
+                const x = i * (barWidth + 2);
+                const idleHeight = 4 + Math.sin(i * 0.2) * 2;
+
+                const gradient = ctx.createLinearGradient(0, centerY - idleHeight, 0, centerY + idleHeight);
+                gradient.addColorStop(0, "rgba(255, 176, 0, 0.3)");
+                gradient.addColorStop(0.5, "rgba(0, 255, 255, 0.2)");
+                gradient.addColorStop(1, "rgba(255, 176, 0, 0.3)");
+
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, centerY - idleHeight, barWidth, idleHeight * 2);
+            }}
+        }}
+
+        function draw() {{
+            if (!isPlaying) return;
+
+            animationId = requestAnimationFrame(draw);
+            analyser.getByteFrequencyData(dataArray);
+
+            const width = canvas.width;
+            const height = canvas.height;
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw grid
+            ctx.strokeStyle = "rgba(255, 176, 0, 0.03)";
+            ctx.lineWidth = 1;
+            for (let i = 0; i < width; i += 20) {{
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, height);
+                ctx.stroke();
+            }}
+
+            // Draw frequency bars
+            const barCount = 64;
+            const barWidth = (width / barCount) - 2;
+            const centerY = height / 2;
+
+            for (let i = 0; i < barCount; i++) {{
+                const dataIndex = Math.floor(i * (dataArray.length / barCount));
+                const value = dataArray[dataIndex];
+                const barHeight = (value / 255) * (height * 0.45);
+                const x = i * (barWidth + 2);
+
+                // Color based on frequency (rainbow spectrum like the reference image)
+                const hue = (i / barCount) * 300 + 270; // Purple to red to yellow to green to cyan
+                const saturation = 80 + (value / 255) * 20;
+                const lightness = 45 + (value / 255) * 15;
+
+                // Main bar gradient
+                const gradient = ctx.createLinearGradient(0, centerY - barHeight, 0, centerY + barHeight);
+                gradient.addColorStop(0, `hsla(${{hue}}, ${{saturation}}%, ${{lightness + 20}}%, 0.9)`);
+                gradient.addColorStop(0.3, `hsla(${{hue}}, ${{saturation}}%, ${{lightness}}%, 1)`);
+                gradient.addColorStop(0.5, `hsla(${{hue}}, ${{saturation + 10}}%, ${{lightness + 10}}%, 1)`);
+                gradient.addColorStop(0.7, `hsla(${{hue}}, ${{saturation}}%, ${{lightness}}%, 1)`);
+                gradient.addColorStop(1, `hsla(${{hue}}, ${{saturation}}%, ${{lightness + 20}}%, 0.9)`);
+
+                ctx.fillStyle = gradient;
+
+                // Draw bar (symmetric around center)
+                ctx.fillRect(x, centerY - barHeight, barWidth, barHeight * 2);
+
+                // Glow effect
+                ctx.shadowColor = `hsla(${{hue}}, 100%, 60%, 0.5)`;
+                ctx.shadowBlur = 8;
+                ctx.fillRect(x, centerY - barHeight, barWidth, barHeight * 2);
+                ctx.shadowBlur = 0;
+
+                // Reflection (subtle)
+                const reflectionGradient = ctx.createLinearGradient(0, centerY + barHeight, 0, centerY + barHeight + barHeight * 0.4);
+                reflectionGradient.addColorStop(0, `hsla(${{hue}}, ${{saturation}}%, ${{lightness}}%, 0.3)`);
+                reflectionGradient.addColorStop(1, "transparent");
+                ctx.fillStyle = reflectionGradient;
+                ctx.fillRect(x, centerY + barHeight, barWidth, barHeight * 0.4);
+            }}
+        }}
+
+        window["togglePlay_" + componentId] = function() {{
+            initAudioContext();
+
+            if (audioContext.state === 'suspended') {{
+                audioContext.resume();
+            }}
+
+            if (isPlaying) {{
+                audio.pause();
+                isPlaying = false;
+                playBtn.innerHTML = "▶ PLAY";
+                playBtn.style.borderColor = "#ffb000";
+                playBtn.style.color = "#ffb000";
+                if (animationId) cancelAnimationFrame(animationId);
+            }} else {{
+                audio.play();
+                isPlaying = true;
+                playBtn.innerHTML = "⏸ PAUSE";
+                playBtn.style.borderColor = "#00ffff";
+                playBtn.style.color = "#00ffff";
+                draw();
+            }}
+        }};
+
+        window["seek_" + componentId] = function(event) {{
+            const rect = progressBar.getBoundingClientRect();
+            const percent = (event.clientX - rect.left) / rect.width;
+            audio.currentTime = percent * audio.duration;
+        }};
+
+        window["setVolume_" + componentId] = function(value) {{
+            audio.volume = value / 100;
+        }};
+
+        // Initial idle state
+        drawIdleState();
+
+        // Resize handler
+        function resizeCanvas() {{
+            const container = canvas.parentElement;
+            canvas.width = container.offsetWidth - 32;
+        }}
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+    }})();
+    </script>
+    '''
+    return html
+
+
+def render_audio_visualizer(audio_path: str, iteration_num: int):
+    """Render the audio visualizer component for a given audio file."""
+    try:
+        if not os.path.exists(audio_path):
+            st.warning(f"Audio file not found: {audio_path}")
+            return
+
+        component_id = f"viz_{iteration_num}_{hash(audio_path) % 10000}"
+        html_content = create_audio_visualizer(audio_path, component_id, height=120)
+        components.html(html_content, height=220)
+    except Exception as e:
+        st.error(f"Error loading audio visualizer: {str(e)}")
+        # Fallback to native audio player
+        st.audio(audio_path)
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PAGE CONFIG
@@ -77,7 +422,7 @@ st.markdown("""
 
         --text-primary: #e0e0e0;
         --text-secondary: #888888;
-        --text-dim: #555555;
+        --text-dim: #888888;
 
         --border-subtle: #222222;
         --border-active: #333333;
@@ -442,6 +787,38 @@ st.markdown("""
         background: var(--border-active) !important;
     }
 
+    /* Slider labels - make them brighter */
+    .stSlider label,
+    .stSlider [data-testid="stWidgetLabel"] {
+        color: var(--text-primary) !important;
+        font-family: var(--font-mono) !important;
+        font-size: 0.75rem !important;
+        letter-spacing: 0.1em !important;
+    }
+
+    /* Checkbox labels - make them brighter */
+    .stCheckbox label,
+    .stCheckbox [data-testid="stWidgetLabel"] {
+        color: var(--text-primary) !important;
+    }
+
+    /* Spinner text - make it brighter */
+    .stSpinner > div > div {
+        color: var(--phosphor-amber) !important;
+    }
+
+    /* Status/progress text */
+    .stStatusWidget,
+    [data-testid="stStatusWidget"] {
+        color: var(--text-primary) !important;
+    }
+
+    /* Make all widget labels brighter */
+    [data-testid="stWidgetLabel"] p,
+    [data-testid="stWidgetLabel"] span {
+        color: var(--text-primary) !important;
+    }
+
     /* ═══════════════════════════════════════════════════════════════════════
        BUTTONS
        ═══════════════════════════════════════════════════════════════════════ */
@@ -751,7 +1128,7 @@ st.markdown("""
         background: var(--bg-void);
         border: 1px solid var(--border-active);
         padding: 1rem;
-        margin: 1rem 0;
+        margin: 1rem 0 2rem 0;
     }
 
     .audio-container::before {
@@ -962,6 +1339,7 @@ st.markdown("""
         color: var(--text-secondary) !important;
         background: var(--bg-elevated) !important;
         border: 1px solid var(--border-subtle) !important;
+        margin-top: 1rem !important;
     }
 
     .streamlit-expanderContent {
@@ -989,6 +1367,126 @@ st.markdown("""
     }
 
     /* ═══════════════════════════════════════════════════════════════════════
+       TABS STYLING
+       ═══════════════════════════════════════════════════════════════════════ */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0;
+        background: var(--bg-panel);
+        border-bottom: 1px solid var(--border-subtle);
+        padding: 0 1rem;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        font-family: var(--font-display) !important;
+        font-size: 0.75rem;
+        letter-spacing: 0.1em;
+        color: var(--text-secondary);
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 1rem 1.5rem;
+        margin: 0;
+    }
+
+    .stTabs [data-baseweb="tab"]:hover {
+        color: var(--phosphor-amber);
+        background: var(--bg-elevated);
+    }
+
+    .stTabs [aria-selected="true"] {
+        color: var(--phosphor-amber) !important;
+        border-bottom: 2px solid var(--phosphor-amber) !important;
+        background: var(--bg-elevated) !important;
+    }
+
+    .stTabs [data-baseweb="tab-highlight"] {
+        background: var(--phosphor-amber) !important;
+    }
+
+    .stTabs [data-baseweb="tab-panel"] {
+        padding-top: 1.5rem;
+    }
+
+    /* History page cards */
+    .history-card {
+        background: var(--bg-panel);
+        border: 1px solid var(--border-subtle);
+        border-left: 3px solid var(--success);
+        padding: 1.2rem 1.5rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .history-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.8rem;
+    }
+
+    .history-score {
+        font-family: var(--font-display);
+        font-size: 1.1rem;
+        color: var(--success);
+    }
+
+    .history-date {
+        font-size: 0.7rem;
+        color: var(--text-dim);
+    }
+
+    .history-prompts {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 0.8rem;
+        align-items: center;
+    }
+
+    .history-prompt-box {
+        background: var(--bg-void);
+        border: 1px solid var(--border-subtle);
+        padding: 0.8rem;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+    }
+
+    .history-prompt-box.refined {
+        color: var(--phosphor-amber);
+        border-color: var(--phosphor-amber);
+    }
+
+    .history-arrow {
+        color: var(--phosphor-amber);
+        font-size: 1.2rem;
+    }
+
+    .rating-card {
+        background: var(--bg-panel);
+        border: 1px solid var(--border-subtle);
+        padding: 1rem 1.5rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .rating-stars-display {
+        font-size: 1.3rem;
+        color: var(--phosphor-amber);
+    }
+
+    .rating-prompt-text {
+        flex: 1;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+    }
+
+    .rating-meta-text {
+        font-size: 0.7rem;
+        color: var(--text-dim);
+        text-align: right;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
        RESPONSIVE
        ═══════════════════════════════════════════════════════════════════════ */
     @media (max-width: 768px) {
@@ -1012,6 +1510,15 @@ st.markdown("""
 
         .intel-grid {
             grid-template-columns: repeat(2, 1fr);
+        }
+
+        .history-prompts {
+            grid-template-columns: 1fr;
+        }
+
+        .history-arrow {
+            transform: rotate(90deg);
+            text-align: center;
         }
     }
 </style>
@@ -1050,12 +1557,12 @@ st.markdown("""
 
 # Learning Status Badge
 try:
-    metrics = get_metrics()
-    if metrics and metrics.total_examples > 0:
+    badge_stats = get_local_stats()
+    if badge_stats['total_patterns'] > 0:
         st.markdown(f"""
         <div style="text-align: center;">
             <span class="learning-badge">
-                LEARNING ACTIVE • {metrics.total_examples} PATTERNS LEARNED
+                LEARNING ACTIVE • {badge_stats['total_patterns']} PATTERNS LEARNED
             </span>
         </div>
         """, unsafe_allow_html=True)
@@ -1071,107 +1578,125 @@ except Exception:
     pass
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# INTELLIGENCE DASHBOARD
+# MAIN TABS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-with st.expander("🧠 INTELLIGENCE DASHBOARD", expanded=False):
-    try:
-        metrics = get_metrics()
+tab_generate, tab_learning, tab_ratings, tab_sessions = st.tabs([
+    "◎ GENERATE",
+    "◎ LEARNING HISTORY",
+    "◎ RATINGS",
+    "◎ SESSIONS"
+])
 
-        if metrics and metrics.total_examples > 0:
-            # Metrics Grid
-            st.markdown("""
-            <div class="intel-dashboard">
-                <div class="intel-grid">
-            """, unsafe_allow_html=True)
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 1: GENERATE
+# ═══════════════════════════════════════════════════════════════════════════════
 
-            col1, col2, col3, col4 = st.columns(4)
+with tab_generate:
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # INTELLIGENCE DASHBOARD
+    # ═══════════════════════════════════════════════════════════════════════════════
 
-            with col1:
-                delta_class = "positive" if metrics.recent_examples_24h > 0 else ""
-                delta_text = f"+{metrics.recent_examples_24h} today" if metrics.recent_examples_24h > 0 else "—"
-                st.markdown(f"""
-                <div class="intel-card">
-                    <div class="intel-value">{metrics.total_examples}</div>
-                    <div class="intel-label">Patterns Learned</div>
-                    <div class="intel-delta {delta_class}">{delta_text}</div>
-                </div>
-                """, unsafe_allow_html=True)
+    with st.expander("🧠 INTELLIGENCE DASHBOARD", expanded=False):
+        try:
+            # Use local storage stats
+            intel_stats = get_local_stats()
 
-            with col2:
-                st.markdown(f"""
-                <div class="intel-card">
-                    <div class="intel-value">{metrics.avg_score:.0f}</div>
-                    <div class="intel-label">Avg Score</div>
-                    <div class="intel-delta">out of 100</div>
-                </div>
-                """, unsafe_allow_html=True)
-
-            with col3:
-                rating_display = f"{metrics.avg_user_rating:.1f}" if metrics.avg_user_rating > 0 else "—"
-                st.markdown(f"""
-                <div class="intel-card">
-                    <div class="intel-value">{rating_display}</div>
-                    <div class="intel-label">User Rating</div>
-                    <div class="intel-delta">out of 5</div>
-                </div>
-                """, unsafe_allow_html=True)
-
-            with col4:
-                st.markdown(f"""
-                <div class="intel-card">
-                    <div class="intel-value">{metrics.examples_used_as_fewshot}</div>
-                    <div class="intel-label">Times Reused</div>
-                    <div class="intel-delta">as examples</div>
-                </div>
-                """, unsafe_allow_html=True)
-
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            # Top Patterns
-            if metrics.top_patterns:
+            if intel_stats['total_patterns'] > 0:
+                # Metrics Grid
                 st.markdown("""
-                <div class="intel-patterns">
-                    <div class="intel-pattern-title">◎ TOP LEARNED PATTERNS</div>
+                <div class="intel-dashboard">
+                    <div class="intel-grid">
                 """, unsafe_allow_html=True)
 
-                for pattern in metrics.top_patterns[:3]:
+                col1, col2, col3, col4 = st.columns(4)
+
+                with col1:
                     st.markdown(f"""
-                    <div class="intel-pattern-item">
-                        "{pattern['initial']}" → "{pattern['refined']}"
-                        <span class="intel-pattern-score">{pattern['score']:.0f}/100</span>
+                    <div class="intel-card">
+                        <div class="intel-value">{intel_stats['total_patterns']}</div>
+                        <div class="intel-label">Patterns Learned</div>
+                        <div class="intel-delta positive">ready to use</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                with col2:
+                    st.markdown(f"""
+                    <div class="intel-card">
+                        <div class="intel-value">{intel_stats['avg_score']}</div>
+                        <div class="intel-label">Avg Score</div>
+                        <div class="intel-delta">out of 100</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                with col3:
+                    rating_display = f"{intel_stats['avg_rating']}" if intel_stats['avg_rating'] > 0 else "—"
+                    st.markdown(f"""
+                    <div class="intel-card">
+                        <div class="intel-value">{rating_display}</div>
+                        <div class="intel-label">User Rating</div>
+                        <div class="intel-delta">out of 5</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                with col4:
+                    st.markdown(f"""
+                    <div class="intel-card">
+                        <div class="intel-value">{intel_stats['times_reused']}</div>
+                        <div class="intel-label">Times Reused</div>
+                        <div class="intel-delta">as examples</div>
                     </div>
                     """, unsafe_allow_html=True)
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-            # Top Keywords
-            if metrics.top_keywords:
-                st.markdown('<div class="intel-patterns"><div class="intel-pattern-title">◎ TOP KEYWORDS</div></div>', unsafe_allow_html=True)
-                st.markdown('<div class="intel-keywords">', unsafe_allow_html=True)
-                for kw in metrics.top_keywords[:8]:
-                    st.markdown(f'<span class="intel-keyword">{kw["word"]} ({kw["count"]})</span>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                # Top Patterns
+                if intel_stats['top_patterns']:
+                    st.markdown("""
+                    <div class="intel-patterns">
+                        <div class="intel-pattern-title">◎ TOP LEARNED PATTERNS</div>
+                    """, unsafe_allow_html=True)
 
-            st.markdown("</div>", unsafe_allow_html=True)
+                    for pattern in intel_stats['top_patterns'][:3]:
+                        initial = pattern.get('initial_prompt', '')[:30] + "..." if len(pattern.get('initial_prompt', '')) > 30 else pattern.get('initial_prompt', '')
+                        refined = pattern.get('refined_prompt', '')[:50] + "..." if len(pattern.get('refined_prompt', '')) > 50 else pattern.get('refined_prompt', '')
+                        score = pattern.get('auto_score', 0)
+                        st.markdown(f"""
+                        <div class="intel-pattern-item">
+                            "{initial}" → "{refined}"
+                            <span class="intel-pattern-score">{score:.0f}/100</span>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-        else:
-            st.markdown("""
-            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">🧠</p>
-                <p>No patterns learned yet.</p>
-                <p style="font-size: 0.8rem; color: var(--text-dim);">
-                    Generate audio and rate iterations to teach the system.
-                </p>
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+                # Top Keywords
+                if intel_stats['top_keywords']:
+                    st.markdown('<div class="intel-patterns"><div class="intel-pattern-title">◎ TOP KEYWORDS</div></div>', unsafe_allow_html=True)
+                    st.markdown('<div class="intel-keywords">', unsafe_allow_html=True)
+                    for kw in intel_stats['top_keywords'][:8]:
+                        st.markdown(f'<span class="intel-keyword">{kw["word"]} ({kw["count"]})</span>', unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            else:
+                st.markdown("""
+                <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">🧠</p>
+                    <p>No patterns learned yet.</p>
+                    <p style="font-size: 0.8rem; color: var(--text-dim);">
+                        Generate audio and rate iterations to teach the system.
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+
+        except Exception as e:
+            st.markdown(f"""
+            <div style="text-align: center; padding: 2rem; color: var(--text-dim);">
+                Learning system initializing...
             </div>
             """, unsafe_allow_html=True)
-
-    except Exception as e:
-        st.markdown(f"""
-        <div style="text-align: center; padding: 2rem; color: var(--text-dim);">
-            Learning system initializing...
-        </div>
-        """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
@@ -1222,420 +1747,557 @@ with st.sidebar:
     st.markdown("---")
 
     # ═══════════════════════════════════════════════════════════════
-    # WEAVE OBSERVABILITY
+    # LEARNING STATS (Local Storage)
     # ═══════════════════════════════════════════════════════════════
-    st.markdown("### WEAVE OBSERVABILITY")
+    st.markdown("### LEARNING STATS")
 
-    # Get learning metrics for display
-    try:
-        sidebar_metrics = get_metrics()
-        patterns_count = sidebar_metrics.total_examples if sidebar_metrics else 0
-        avg_score = sidebar_metrics.avg_score if sidebar_metrics else 0
-        times_reused = sidebar_metrics.examples_used_as_fewshot if sidebar_metrics else 0
-    except Exception:
-        patterns_count = 0
-        avg_score = 0
-        times_reused = 0
+    # Get stats from local storage
+    local_stats = get_local_stats()
 
     st.markdown(f"""
     <div style="background: var(--bg-elevated); padding: 0.8rem; margin-bottom: 0.5rem; border-left: 2px solid var(--success);">
         <div style="font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em;">PATTERNS LEARNED</div>
-        <div style="font-size: 1.2rem; color: var(--success); font-family: var(--font-display);">{patterns_count}</div>
+        <div style="font-size: 1.2rem; color: var(--success); font-family: var(--font-display);">{local_stats['total_patterns']}</div>
     </div>
     <div style="background: var(--bg-elevated); padding: 0.8rem; margin-bottom: 0.5rem; border-left: 2px solid var(--cyan-electric);">
         <div style="font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em;">TIMES REUSED</div>
-        <div style="font-size: 1.2rem; color: var(--cyan-electric); font-family: var(--font-display);">{times_reused}</div>
+        <div style="font-size: 1.2rem; color: var(--cyan-electric); font-family: var(--font-display);">{local_stats['times_reused']}</div>
+    </div>
+    <div style="background: var(--bg-elevated); padding: 0.8rem; margin-bottom: 0.5rem; border-left: 2px solid var(--phosphor-amber);">
+        <div style="font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em;">AVG SCORE</div>
+        <div style="font-size: 1.2rem; color: var(--phosphor-amber); font-family: var(--font-display);">{local_stats['avg_score']}</div>
+    </div>
+    <div style="background: var(--bg-elevated); padding: 0.8rem; margin-bottom: 0.5rem; border-left: 2px solid var(--warning);">
+        <div style="font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em;">USER RATINGS</div>
+        <div style="font-size: 1.2rem; color: var(--warning); font-family: var(--font-display);">{local_stats['total_ratings']} ({local_stats['avg_rating']} avg)</div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown(f"""
-    <div style="font-size: 0.7rem; color: var(--text-dim); margin: 0.8rem 0;">
-        <strong style="color: var(--text-secondary);">How it works:</strong><br>
-        • All operations traced to Weave<br>
-        • High-scoring refinements stored<br>
-        • User ratings boost examples<br>
-        • Past examples used as few-shot
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Weave Dashboard Links
-    wandb_entity = "aichen-harvey-mudd-college"  # From the traces we saw
-    weave_base_url = f"https://wandb.ai/{wandb_entity}/{weave_project}"
-
-    st.markdown(f"""
-    <a href="{weave_base_url}/weave/traces" target="_blank" class="weave-link" style="margin-bottom: 0.5rem; display: block; text-align: center;">
-        ◎ VIEW ALL TRACES
-    </a>
-    <a href="{weave_base_url}/weave/objects" target="_blank" class="weave-link" style="margin-bottom: 0.5rem; display: block; text-align: center; border-color: var(--success); color: var(--success);">
-        ◎ VIEW LEARNED DATA
-    </a>
-    """, unsafe_allow_html=True)
-
-    st.markdown(f"""
-    <div style="font-size: 0.6rem; color: var(--text-dim); margin-top: 0.5rem; text-align: center;">
-        Project: {weave_project}
-    </div>
-    """, unsafe_allow_html=True)
+    # Top Keywords
+    if local_stats['top_keywords']:
+        st.markdown("""
+        <div style="font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em; margin: 0.8rem 0 0.3rem 0;">TOP KEYWORDS</div>
+        """, unsafe_allow_html=True)
+        keywords_html = " ".join([
+            f'<span style="background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.3); padding: 0.2rem 0.4rem; font-size: 0.65rem; color: var(--success); margin-right: 0.3rem; margin-bottom: 0.3rem; display: inline-block;">{kw["word"]}</span>'
+            for kw in local_stats['top_keywords'][:5]
+        ])
+        st.markdown(f'<div style="margin-bottom: 0.5rem;">{keywords_html}</div>', unsafe_allow_html=True)
 
     st.markdown("---")
 
     # ═══════════════════════════════════════════════════════════════
-    # MISSION PARAMETERS
+    # HOW IT WORKS
     # ═══════════════════════════════════════════════════════════════
-    st.markdown("### GENERATION CONFIG")
+    st.markdown("### HOW IT WORKS")
+    st.markdown("""
+    <div style="font-size: 0.7rem; color: var(--text-dim); line-height: 1.6;">
+        <strong style="color: var(--phosphor-amber);">Self-Refine:</strong> Each iteration critiques and improves the prompt, scored by AI judge.<br><br>
+        <strong style="color: var(--success);">Auto-Learning:</strong> High-scoring refinements (≥75) are automatically saved for future use.<br><br>
+        <strong style="color: var(--cyan-electric);">Your Ratings:</strong> Rate clips to teach the system — 4+ star ratings boost patterns.<br><br>
+        <strong style="color: var(--warning);">Few-Shot:</strong> Past successes are used as examples for new generations.
+    </div>
+    """, unsafe_allow_html=True)
 
-    max_iterations = st.slider(
-        "ITERATIONS",
-        min_value=2,
-        max_value=5,
-        value=3,
-        help="Number of refinement cycles"
-    )
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAIN CONTENT (inside tab_generate)
+# ═══════════════════════════════════════════════════════════════════════════════
 
-    audio_duration = st.slider(
-        "AUDIO DURATION (SEC)",
-        min_value=3,
-        max_value=10,
-        value=5,
-        help="Length of generated audio"
-    )
+with tab_generate:
+    # Mission Input Panel
+    st.markdown('<div class="mission-input-panel">', unsafe_allow_html=True)
 
-    enable_learning = st.checkbox("🧠 ENABLE LEARNING", value=True, help="Use and contribute to learned patterns")
+    col1, col2 = st.columns([5, 1])
 
-    st.markdown("---")
+    with col1:
+        default_prompt = st.session_state.get("selected_prompt", "")
+        user_prompt = st.text_input(
+            "DESCRIBE TARGET AUDIO",
+            value=default_prompt,
+            placeholder="e.g., peaceful piano melody, driving electronic beat...",
+            label_visibility="collapsed"
+        )
 
-    # ═══════════════════════════════════════════════════════════════
-    # QUICK LAUNCH
-    # ═══════════════════════════════════════════════════════════════
-    st.markdown("### QUICK LAUNCH")
+    with col2:
+        can_run = bool(replicate_key and openai_key and user_prompt and not st.session_state.running)
+        generate_btn = st.button(
+            "◎ LAUNCH",
+            type="primary",
+            use_container_width=True,
+            disabled=not can_run
+        )
 
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Quick Launch Buttons (below search bar)
+    st.markdown("""
+    <div style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.1em; margin: 0.5rem 0;">
+        QUICK START
+    </div>
+    """, unsafe_allow_html=True)
+
+    quick_cols = st.columns(5)
     quick_prompts = [
-        ("◎ SUMMER VIBES", "happy summer vibes"),
-        ("◎ CINEMATIC", "epic cinematic trailer"),
-        ("◎ LOFI BEATS", "chill lofi study beats"),
-        ("◎ WORKOUT", "energetic workout music"),
-        ("◎ AMBIENT", "ambient night atmosphere"),
+        ("SUMMER VIBES", "happy summer vibes"),
+        ("CINEMATIC", "epic cinematic trailer"),
+        ("LOFI BEATS", "chill lofi study beats"),
+        ("WORKOUT", "energetic workout music"),
+        ("AMBIENT", "ambient night atmosphere"),
     ]
 
-    for label, prompt in quick_prompts:
-        if st.button(label, key=f"quick_{prompt}", use_container_width=True):
-            st.session_state.selected_prompt = prompt
-            st.rerun()
+    for i, (label, prompt) in enumerate(quick_prompts):
+        with quick_cols[i]:
+            if st.button(label, key=f"main_quick_{prompt}", use_container_width=True):
+                st.session_state.selected_prompt = prompt
+                st.rerun()
 
-    st.markdown("---")
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # GENERATION CONFIG (in main area)
+    # ═══════════════════════════════════════════════════════════════════════════════
 
-    # ═══════════════════════════════════════════════════════════════
-    # DATA STORAGE INFO
-    # ═══════════════════════════════════════════════════════════════
-    st.markdown("### WHERE DATA GOES")
-    st.markdown(f"""
-    <div style="font-size: 0.7rem; color: var(--text-dim); line-height: 1.6;">
-        <strong style="color: var(--phosphor-amber);">Traces:</strong> Every LLM call, audio generation, and scoring operation is logged to Weave for debugging and analysis.<br><br>
-        <strong style="color: var(--success);">Learned Patterns:</strong> Refinements scoring ≥75 or rated ≥4 stars are saved to the <code>successful-refinements</code> dataset.<br><br>
-        <strong style="color: var(--cyan-electric);">Your Ratings:</strong> All ratings are stored in the <code>user-feedback</code> dataset and used to improve future generations.
+    st.markdown("""
+    <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-panel); border: 1px solid var(--border-subtle); position: relative;">
+        <div style="position: absolute; top: -0.6rem; left: 1rem; background: var(--bg-panel); padding: 0 0.5rem; font-family: var(--font-display); font-size: 0.65rem; color: var(--cyan-electric); letter-spacing: 0.2em;">
+            ◎ GENERATION CONFIG
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# MAIN CONTENT
-# ═══════════════════════════════════════════════════════════════════════════════
+    config_col1, config_col2, config_col3 = st.columns([2, 2, 1])
 
-# Mission Input Panel
-st.markdown('<div class="mission-input-panel">', unsafe_allow_html=True)
+    with config_col1:
+        max_iterations = st.slider(
+            "ITERATIONS",
+            min_value=2,
+            max_value=5,
+            value=3,
+            help="Number of refinement cycles"
+        )
 
-col1, col2 = st.columns([5, 1])
+    with config_col2:
+        audio_duration = st.slider(
+            "AUDIO DURATION (SEC)",
+            min_value=3,
+            max_value=10,
+            value=5,
+            help="Length of generated audio"
+        )
 
-with col1:
-    default_prompt = st.session_state.get("selected_prompt", "")
-    user_prompt = st.text_input(
-        "DESCRIBE TARGET AUDIO",
-        value=default_prompt,
-        placeholder="e.g., peaceful piano melody, driving electronic beat...",
-        label_visibility="collapsed"
-    )
+    with config_col3:
+        enable_learning = st.checkbox("🧠 LEARNING", value=True, help="Use and contribute to learned patterns")
 
-with col2:
-    can_run = bool(replicate_key and openai_key and user_prompt and not st.session_state.running)
-    generate_btn = st.button(
-        "◎ LAUNCH",
-        type="primary",
-        use_container_width=True,
-        disabled=not can_run
-    )
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # GENERATION LOGIC
+    # ═══════════════════════════════════════════════════════════════════════════════
 
-st.markdown('</div>', unsafe_allow_html=True)
+    if generate_btn and can_run:
+        st.session_state.running = True
+        st.session_state.iterations = []
+        st.session_state.results = None
+        st.session_state.ratings = {}
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# GENERATION LOGIC
-# ═══════════════════════════════════════════════════════════════════════════════
+        # Check if this is a cached quick prompt
+        prompt_is_cached = is_prompt_cached(user_prompt)
 
-if generate_btn and can_run:
-    st.session_state.running = True
-    st.session_state.iterations = []
-    st.session_state.results = None
-    st.session_state.ratings = {}
+        # Clear selected prompt
+        if "selected_prompt" in st.session_state:
+            del st.session_state.selected_prompt
 
-    # Check if this is a cached quick prompt
-    prompt_is_cached = is_prompt_cached(user_prompt)
+        try:
+            if prompt_is_cached:
+                # ═══════════════════════════════════════════════════════════════
+                # CACHED QUICK PROMPT - Load with simulated delays
+                # Appears identical to live generation
+                # ═══════════════════════════════════════════════════════════════
 
-    # Clear selected prompt
-    if "selected_prompt" in st.session_state:
-        del st.session_state.selected_prompt
+                # Stream iterations with delays (looks like real generation)
+                with st.spinner("◎ MISSION IN PROGRESS — GENERATING, SCORING, AND LEARNING..."):
+                    iterations_loaded = []
+                    for iteration in stream_cached_iterations(user_prompt, simulate_delay=True):
+                        iterations_loaded.append(iteration)
+                        st.session_state.iterations = iterations_loaded.copy()
 
-    try:
-        if prompt_is_cached:
-            # ═══════════════════════════════════════════════════════════════
-            # CACHED QUICK PROMPT - Load with simulated delays
-            # Appears identical to live generation
-            # ═══════════════════════════════════════════════════════════════
+                # Load comparison data
+                st.session_state.results = load_cached_comparison_data(user_prompt)
 
-            # Stream iterations with delays (looks like real generation)
-            with st.spinner("◎ MISSION IN PROGRESS — GENERATING, SCORING, AND LEARNING..."):
-                iterations_loaded = []
-                for iteration in stream_cached_iterations(user_prompt, simulate_delay=True):
-                    iterations_loaded.append(iteration)
-                    st.session_state.iterations = iterations_loaded.copy()
+                st.success("◎ MISSION COMPLETE — AUDIO GENERATION SUCCESSFUL")
 
-            # Load comparison data
-            st.session_state.results = load_cached_comparison_data(user_prompt)
+                # Create a mock engine for ratings (won't actually generate)
+                st.session_state.engine = None
 
-            st.success("◎ MISSION COMPLETE — AUDIO GENERATION SUCCESSFUL")
-
-            # Create a mock engine for ratings (won't actually generate)
-            st.session_state.engine = None
-
-        else:
-            # ═══════════════════════════════════════════════════════════════
-            # CUSTOM PROMPT - Generate live
-            # ═══════════════════════════════════════════════════════════════
-            def on_iteration(iteration: LoopIteration):
-                st.session_state.iterations.append(iteration)
-
-            engine = LoopismEngine(
-                max_iterations=max_iterations,
-                audio_duration=audio_duration,
-                output_dir="loopism_outputs",
-                on_iteration_complete=on_iteration,
-                enable_learning=enable_learning
-            )
-            st.session_state.engine = engine
-
-            with st.spinner("◎ MISSION IN PROGRESS — GENERATING, SCORING, AND LEARNING..."):
-                results = engine.run(user_prompt)
-
-            st.session_state.results = engine.get_comparison_data()
-            st.success("◎ MISSION COMPLETE — AUDIO GENERATION SUCCESSFUL")
-
-    except Exception as e:
-        st.error(f"◎ MISSION FAILED — {str(e)}")
-
-    st.session_state.running = False
-    st.rerun()
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# RESULTS DISPLAY
-# ═══════════════════════════════════════════════════════════════════════════════
-
-if st.session_state.iterations:
-    # Timeline Header
-    examples_used = st.session_state.iterations[0].examples_used if st.session_state.iterations else 0
-
-    st.markdown(f"""
-    <div class="timeline-header">
-        <span class="timeline-title">◎ ITERATION TIMELINE</span>
-        <span class="timeline-status">● COMPLETE</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Show examples used indicator
-    if examples_used > 0:
-        st.markdown(f"""
-        <div class="examples-indicator" style="margin-bottom: 1rem;">
-            📚 Used {examples_used} learned patterns as examples
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div class="examples-indicator" style="margin-bottom: 1rem; color: var(--text-dim);">
-            📚 No past examples used (fresh start)
-        </div>
-        """, unsafe_allow_html=True)
-
-    # Iteration Cards
-    cols = st.columns(len(st.session_state.iterations))
-
-    for col, iteration in zip(cols, st.session_state.iterations):
-        with col:
-            phase_name = ["INITIAL", "REFINED", "OPTIMIZED", "ENHANCED", "FINAL"][min(iteration.iteration_num, 4)]
-            total_time = iteration.generation_time + iteration.refinement_time
-
-            # Determine score color
-            score = iteration.auto_score
-            if score >= 80:
-                score_class = "high"
-            elif score >= 60:
-                score_class = "medium"
             else:
-                score_class = "low"
+                # ═══════════════════════════════════════════════════════════════
+                # CUSTOM PROMPT - Generate live
+                # ═══════════════════════════════════════════════════════════════
+                def on_iteration(iteration: LoopIteration):
+                    st.session_state.iterations.append(iteration)
+
+                engine = LoopismEngine(
+                    max_iterations=max_iterations,
+                    audio_duration=audio_duration,
+                    output_dir="loopism_outputs",
+                    on_iteration_complete=on_iteration,
+                    enable_learning=enable_learning
+                )
+                st.session_state.engine = engine
+
+                with st.spinner("◎ MISSION IN PROGRESS — GENERATING, SCORING, AND LEARNING..."):
+                    results = engine.run(user_prompt)
+
+                st.session_state.results = engine.get_comparison_data()
+                st.success("◎ MISSION COMPLETE — AUDIO GENERATION SUCCESSFUL")
+
+        except Exception as e:
+            st.error(f"◎ MISSION FAILED — {str(e)}")
+
+        st.session_state.running = False
+        st.rerun()
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # RESULTS DISPLAY
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    if st.session_state.iterations:
+        # Timeline Header
+        examples_used = st.session_state.iterations[0].examples_used if st.session_state.iterations else 0
+
+        st.markdown(f"""
+        <div class="timeline-header">
+            <span class="timeline-title">◎ ITERATION TIMELINE</span>
+            <span class="timeline-status">● COMPLETE</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Show examples used indicator
+        if examples_used > 0:
+            st.markdown(f"""
+            <div class="examples-indicator" style="margin-bottom: 1rem;">
+                📚 Used {examples_used} learned patterns as examples
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="examples-indicator" style="margin-bottom: 1rem; color: var(--text-dim);">
+                📚 No past examples used (fresh start)
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Iteration Cards
+        cols = st.columns(len(st.session_state.iterations))
+
+        for col, iteration in zip(cols, st.session_state.iterations):
+            with col:
+                phase_name = ["INITIAL", "REFINED", "OPTIMIZED", "ENHANCED", "FINAL"][min(iteration.iteration_num, 4)]
+                total_time = iteration.generation_time + iteration.refinement_time
+
+                # Determine score color
+                score = iteration.auto_score
+                if score >= 80:
+                    score_class = "high"
+                elif score >= 60:
+                    score_class = "medium"
+                else:
+                    score_class = "low"
+
+                st.markdown(f"""
+                <div class="iteration-card">
+                    <div class="iteration-header">
+                        <div>
+                            <span class="iteration-number">0{iteration.iteration_num + 1}</span>
+                            <span class="iteration-phase">{phase_name}</span>
+                        </div>
+                        <span class="iteration-time">{total_time:.1f}s</span>
+                    </div>
+                    <div class="iteration-body">
+                        <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+                            <span class="score-badge {score_class}">◎ {score:.0f}/100</span>
+                            {f'<span class="learning-indicator">🧠 Added to learning</span>' if iteration.added_to_learning else ''}
+                        </div>
+                        <div class="prompt-display">{iteration.refined_prompt}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                # Audio Player with Visualizer
+                if os.path.exists(iteration.audio_path):
+                    render_audio_visualizer(iteration.audio_path, iteration.iteration_num)
+
+                # Expandable Details
+                with st.expander("◎ VIEW CRITIQUE"):
+                    st.markdown(f"""
+                    <div class="critique-box">{iteration.critique}</div>
+                    <div class="improvement-note">{iteration.improvement_notes}</div>
+                    """, unsafe_allow_html=True)
+
+                # Rating Widget
+                st.markdown('<div class="rating-container">', unsafe_allow_html=True)
+                st.markdown('<div class="rating-label">RATE THIS REFINEMENT</div>', unsafe_allow_html=True)
+
+                rating_key = f"rating_{iteration.iteration_num}"
+
+                # Check if already rated
+                if rating_key in st.session_state.ratings:
+                    rating = st.session_state.ratings[rating_key]
+                    stars = "★" * rating + "☆" * (5 - rating)
+                    st.markdown(f"""
+                    <div class="rating-success">
+                        {stars} — Rating submitted! {"🧠 Teaching the system!" if rating >= 4 else ""}
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    # Rating input
+                    rating = st.slider(
+                        "Stars",
+                        min_value=1,
+                        max_value=5,
+                        value=3,
+                        key=f"slider_{iteration.iteration_num}",
+                        label_visibility="collapsed"
+                    )
+
+                    # Star display
+                    stars_html = ""
+                    for i in range(1, 6):
+                        active = "active" if i <= rating else ""
+                        stars_html += f'<span class="rating-star {active}">{"★" if i <= rating else "☆"}</span>'
+
+                    st.markdown(f'<div class="rating-stars">{stars_html}</div>', unsafe_allow_html=True)
+
+                    if st.button(f"Submit Rating", key=f"submit_{iteration.iteration_num}"):
+                        success = False
+                        if st.session_state.engine:
+                            # Live generation - use engine
+                            success = st.session_state.engine.record_user_rating(iteration.iteration_num, rating)
+                        elif iteration.record_id:
+                            # Cached prompt - use learning system directly
+                            success = record_feedback(iteration.record_id, rating)
+
+                        if success:
+                            st.session_state.ratings[rating_key] = rating
+                            st.rerun()
+
+                st.markdown('</div>', unsafe_allow_html=True)
+
+        # Stats Section
+        results = st.session_state.results
+        if results:
+            st.markdown("---")
+            st.markdown("""
+            <div class="timeline-header">
+                <span class="timeline-title">◎ SESSION STATISTICS</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            avg_score = results.get('avg_score', 0)
+            learned_count = results.get('learned_count', 0)
+            rated_count = len(st.session_state.ratings)
 
             st.markdown(f"""
-            <div class="iteration-card">
-                <div class="iteration-header">
-                    <div>
-                        <span class="iteration-number">0{iteration.iteration_num + 1}</span>
-                        <span class="iteration-phase">{phase_name}</span>
-                    </div>
-                    <span class="iteration-time">{total_time:.1f}s</span>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-value">{results.get('total_iterations', 0)}</div>
+                    <div class="stat-label">ITERATIONS</div>
                 </div>
-                <div class="iteration-body">
-                    <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
-                        <span class="score-badge {score_class}">◎ {score:.0f}/100</span>
-                        {f'<span class="learning-indicator">🧠 Added to learning</span>' if iteration.added_to_learning else ''}
-                    </div>
-                    <div class="prompt-display">{iteration.refined_prompt}</div>
+                <div class="stat-box">
+                    <div class="stat-value">{results.get('total_time', 0):.1f}s</div>
+                    <div class="stat-label">TOTAL TIME</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">{avg_score:.0f}</div>
+                    <div class="stat-label">AVG SCORE</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">{learned_count}</div>
+                    <div class="stat-label">LEARNED</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-            # Audio Player
-            if os.path.exists(iteration.audio_path):
-                st.markdown('<div class="audio-container">', unsafe_allow_html=True)
-                st.audio(iteration.audio_path)
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            # Expandable Details
-            with st.expander("◎ VIEW CRITIQUE"):
-                st.markdown(f"""
-                <div class="critique-box">{iteration.critique}</div>
-                <div class="improvement-note">{iteration.improvement_notes}</div>
-                """, unsafe_allow_html=True)
-
-            # Rating Widget
-            st.markdown('<div class="rating-container">', unsafe_allow_html=True)
-            st.markdown('<div class="rating-label">RATE THIS REFINEMENT</div>', unsafe_allow_html=True)
-
-            rating_key = f"rating_{iteration.iteration_num}"
-
-            # Check if already rated
-            if rating_key in st.session_state.ratings:
-                rating = st.session_state.ratings[rating_key]
-                stars = "★" * rating + "☆" * (5 - rating)
-                st.markdown(f"""
-                <div class="rating-success">
-                    {stars} — Rating submitted! {"🧠 Teaching the system!" if rating >= 4 else ""}
+            # Session Learning Summary
+            st.markdown(f"""
+            <div style="background: var(--bg-panel); border: 1px solid var(--border-subtle); padding: 1rem; margin: 1rem 0;">
+                <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary);">
+                    ◎ SESSION LEARNING SUMMARY<br>
+                    • Clips rated this session: {rated_count}<br>
+                    • Refinements added to learning: {learned_count}<br>
+                    • Past examples used: {results.get('examples_used', 0)}
                 </div>
-                """, unsafe_allow_html=True)
-            else:
-                # Rating input
-                rating = st.slider(
-                    "Stars",
-                    min_value=1,
-                    max_value=5,
-                    value=3,
-                    key=f"slider_{iteration.iteration_num}",
-                    label_visibility="collapsed"
-                )
-
-                # Star display
-                stars_html = ""
-                for i in range(1, 6):
-                    active = "active" if i <= rating else ""
-                    stars_html += f'<span class="rating-star {active}">{"★" if i <= rating else "☆"}</span>'
-
-                st.markdown(f'<div class="rating-stars">{stars_html}</div>', unsafe_allow_html=True)
-
-                if st.button(f"Submit Rating", key=f"submit_{iteration.iteration_num}"):
-                    success = False
-                    if st.session_state.engine:
-                        # Live generation - use engine
-                        success = st.session_state.engine.record_user_rating(iteration.iteration_num, rating)
-                    elif iteration.record_id:
-                        # Cached prompt - use learning system directly
-                        success = record_feedback(iteration.record_id, rating)
-
-                    if success:
-                        st.session_state.ratings[rating_key] = rating
-                        st.rerun()
-
-            st.markdown('</div>', unsafe_allow_html=True)
-
-    # Stats Section
-    results = st.session_state.results
-    if results:
-        st.markdown("---")
-        st.markdown("""
-        <div class="timeline-header">
-            <span class="timeline-title">◎ SESSION STATISTICS</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-        avg_score = results.get('avg_score', 0)
-        learned_count = results.get('learned_count', 0)
-        rated_count = len(st.session_state.ratings)
-
-        st.markdown(f"""
-        <div class="stats-grid">
-            <div class="stat-box">
-                <div class="stat-value">{results.get('total_iterations', 0)}</div>
-                <div class="stat-label">ITERATIONS</div>
             </div>
-            <div class="stat-box">
-                <div class="stat-value">{results.get('total_time', 0):.1f}s</div>
-                <div class="stat-label">TOTAL TIME</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-value">{avg_score:.0f}</div>
-                <div class="stat-label">AVG SCORE</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-value">{learned_count}</div>
-                <div class="stat-label">LEARNED</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-        # Session Learning Summary
-        st.markdown(f"""
-        <div style="background: var(--bg-panel); border: 1px solid var(--border-subtle); padding: 1rem; margin: 1rem 0;">
-            <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary);">
-                ◎ SESSION LEARNING SUMMARY<br>
-                • Clips rated this session: {rated_count}<br>
-                • Refinements added to learning: {learned_count}<br>
-                • Past examples used: {results.get('examples_used', 0)}
+            # Before/After Comparison
+            st.markdown("""
+            <div class="timeline-header">
+                <span class="timeline-title">◎ PROMPT EVOLUTION</span>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-        # Before/After Comparison
-        st.markdown("""
-        <div class="timeline-header">
-            <span class="timeline-title">◎ PROMPT EVOLUTION</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown(f"""
-        <div class="comparison-panel">
-            <div class="comparison-box before">
-                <div class="comparison-label">INITIAL INPUT</div>
-                <div class="comparison-text">{results.get('initial_prompt', 'N/A')}</div>
+            st.markdown(f"""
+            <div class="comparison-panel">
+                <div class="comparison-box before">
+                    <div class="comparison-label">INITIAL INPUT</div>
+                    <div class="comparison-text">{results.get('initial_prompt', 'N/A')}</div>
+                </div>
+                <div class="comparison-arrow">→</div>
+                <div class="comparison-box after">
+                    <div class="comparison-label">FINAL OUTPUT</div>
+                    <div class="comparison-text">{results.get('final_prompt', 'N/A')}</div>
+                </div>
             </div>
-            <div class="comparison-arrow">→</div>
-            <div class="comparison-box after">
-                <div class="comparison-label">FINAL OUTPUT</div>
-                <div class="comparison-text">{results.get('final_prompt', 'N/A')}</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
-        # Weave Dashboard Link
-        st.markdown("---")
-        st.markdown("""
-        <div style="text-align: center; padding: 1rem;">
-            <a href="https://wandb.ai/" target="_blank" class="weave-link">
-                ◎ VIEW FULL TRACE IN WEAVE DASHBOARD
-            </a>
-        </div>
-        """, unsafe_allow_html=True)
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 2: LEARNING HISTORY
+# ═══════════════════════════════════════════════════════════════════════════════
+
+with tab_learning:
+    st.markdown("""
+    <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h2 style="font-family: var(--font-display); color: var(--phosphor-amber); margin: 0;">LEARNED PATTERNS</h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
+            All refinements that scored high or received positive ratings
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    patterns = get_all_patterns()
+    local_stats = get_local_stats()
+
+    # Stats row
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Patterns", local_stats['total_patterns'])
+    with col2:
+        st.metric("Avg Score", local_stats['avg_score'])
+    with col3:
+        st.metric("Times Reused", local_stats['times_reused'])
+    with col4:
+        st.metric("Avg Rating", local_stats['avg_rating'])
+
+    if patterns:
+        patterns_sorted = sorted(patterns, key=lambda x: x.get("auto_score", 0), reverse=True)
+
+        for pattern in patterns_sorted[:10]:
+            score = pattern.get("auto_score", 0)
+            score_color = "var(--success)" if score >= 80 else "var(--warning)" if score >= 60 else "var(--danger)"
+            rating = pattern.get("user_rating")
+            rating_stars = f"{'★' * rating}{'☆' * (5-rating)}" if rating else ""
+
+            st.markdown(f"""
+            <div class="history-card">
+                <div class="history-card-header">
+                    <div class="history-score" style="color: {score_color};">{score:.0f}/100</div>
+                    <div class="history-date">{pattern.get('timestamp', '')[:10]} {f'| {rating_stars}' if rating_stars else ''}</div>
+                </div>
+                <div class="history-prompts">
+                    <div class="history-prompt-box">{pattern.get('initial_prompt', 'N/A')[:60]}...</div>
+                    <div class="history-arrow">→</div>
+                    <div class="history-prompt-box refined">{pattern.get('refined_prompt', 'N/A')[:80]}...</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("No patterns learned yet. Generate audio to start learning.")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 3: RATINGS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+with tab_ratings:
+    st.markdown("""
+    <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h2 style="font-family: var(--font-display); color: var(--phosphor-amber); margin: 0;">USER FEEDBACK</h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
+            All ratings you've given to generated audio clips
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    ratings_list = get_all_ratings()
+
+    if ratings_list:
+        # Stats
+        total_ratings = len(ratings_list)
+        avg_rating = sum(r.get("rating", 0) for r in ratings_list) / len(ratings_list)
+        high_ratings = len([r for r in ratings_list if r.get("rating", 0) >= 4])
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Ratings", total_ratings)
+        with col2:
+            st.metric("Avg Rating", f"{avg_rating:.1f}")
+        with col3:
+            st.metric("High Ratings (4-5)", high_ratings)
+
+        # Ratings list
+        ratings_sorted = sorted(ratings_list, key=lambda x: x.get("timestamp", ""), reverse=True)
+
+        for r in ratings_sorted[:15]:
+            rating_val = r.get("rating", 0)
+            stars = "★" * rating_val + "☆" * (5 - rating_val)
+            prompt_text = r.get("refined_prompt", "")[:80] + "..." if len(r.get("refined_prompt", "")) > 80 else r.get("refined_prompt", "(No prompt)")
+
+            border_color = "var(--success)" if rating_val >= 4 else "var(--warning)" if rating_val == 3 else "var(--danger)"
+
+            st.markdown(f"""
+            <div class="rating-card" style="border-left: 3px solid {border_color};">
+                <div class="rating-stars-display">{stars}</div>
+                <div class="rating-prompt-text">{prompt_text}</div>
+                <div class="rating-meta-text">{r.get('timestamp', '')[:16].replace('T', ' ')}</div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("No ratings yet. Generate audio and rate clips to see your feedback history.")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 4: SESSIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+with tab_sessions:
+    st.markdown("""
+    <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h2 style="font-family: var(--font-display); color: var(--phosphor-amber); margin: 0;">GENERATION SESSIONS</h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
+            All audio generation sessions and their outcomes
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    sessions = get_all_sessions()
+
+    if sessions:
+        total_sessions = len(sessions)
+        total_time = sum(s.get("total_time", 0) for s in sessions)
+        avg_session_score = sum(s.get("avg_score", 0) for s in sessions) / len(sessions)
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Sessions", total_sessions)
+        with col2:
+            st.metric("Total Time", f"{total_time:.0f}s")
+        with col3:
+            st.metric("Avg Score", f"{avg_session_score:.0f}")
+
+        sessions_sorted = sorted(sessions, key=lambda x: x.get("timestamp", ""), reverse=True)
+
+        for session in sessions_sorted[:10]:
+            st.markdown(f"""
+            <div class="history-card" style="border-left-color: var(--cyan-electric);">
+                <div class="history-card-header">
+                    <div style="color: var(--cyan-electric); font-family: var(--font-display);">{session.get('timestamp', '')[:16].replace('T', ' ')}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-dim);">
+                        {session.get('iterations', 0)} iterations | {session.get('total_time', 0):.1f}s | Score: {session.get('avg_score', 0):.0f}
+                    </div>
+                </div>
+                <div class="history-prompts">
+                    <div class="history-prompt-box">{session.get('initial_prompt', 'N/A')[:50]}...</div>
+                    <div class="history-arrow">→</div>
+                    <div class="history-prompt-box refined">{session.get('final_prompt', 'N/A')[:60]}...</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("No sessions yet. Generate audio to see your session history.")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # FOOTER
