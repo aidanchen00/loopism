@@ -67,7 +67,7 @@ def create_audio_visualizer(audio_path: str, component_id: str, height: int = 20
         background: #0a0a0a;
         border: 1px solid #333333;
         padding: 1rem;
-        margin: 0.5rem 0;
+        margin: 0.5rem 0 1.5rem 0;
         font-family: 'JetBrains Mono', monospace;
     ">
         <div style="
@@ -372,7 +372,7 @@ def render_audio_visualizer(audio_path: str, iteration_num: int):
 
         component_id = f"viz_{iteration_num}_{hash(audio_path) % 10000}"
         html_content = create_audio_visualizer(audio_path, component_id, height=120)
-        components.html(html_content, height=220)
+        components.html(html_content, height=260)
     except Exception as e:
         st.error(f"Error loading audio visualizer: {str(e)}")
         # Fallback to native audio player
@@ -420,9 +420,9 @@ st.markdown("""
         --cyan-glow: rgba(0, 255, 255, 0.5);
         --cyan-subtle: rgba(0, 255, 255, 0.08);
 
-        --text-primary: #e0e0e0;
-        --text-secondary: #888888;
-        --text-dim: #888888;
+        --text-primary: #e8e8e8;
+        --text-secondary: #b0b0b0;
+        --text-dim: #999999;
 
         --border-subtle: #222222;
         --border-active: #333333;
@@ -502,52 +502,32 @@ st.markdown("""
        ═══════════════════════════════════════════════════════════════════════ */
     .mission-header {
         text-align: center;
-        padding: 2rem 0;
+        padding: 0.8rem 0;
         margin-bottom: 0.5rem;
         border-bottom: 1px solid var(--border-subtle);
         position: relative;
-    }
-
-    .mission-header::before {
-        content: "◎ MISSION CONTROL ◎";
-        display: block;
-        font-family: var(--font-mono);
-        font-size: 0.7rem;
-        color: var(--phosphor-amber);
-        letter-spacing: 0.4em;
-        margin-bottom: 1rem;
-        text-shadow: 0 0 10px var(--phosphor-amber-glow);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
     }
 
     .logo-text {
         font-family: var(--font-display);
-        font-size: 4rem;
+        font-size: 1.8rem;
         font-weight: 900;
         color: var(--phosphor-amber);
-        letter-spacing: 0.2em;
+        letter-spacing: 0.15em;
         text-shadow:
             0 0 10px var(--phosphor-amber-glow),
-            0 0 20px var(--phosphor-amber-glow),
-            0 0 40px var(--phosphor-amber-glow),
-            0 0 80px rgba(255, 176, 0, 0.3);
-        animation: flicker 4s infinite;
-    }
-
-    @keyframes flicker {
-        0%, 100% { opacity: 1; }
-        92% { opacity: 1; }
-        93% { opacity: 0.8; }
-        94% { opacity: 1; }
-        96% { opacity: 0.9; }
-        97% { opacity: 1; }
+            0 0 20px var(--phosphor-amber-glow);
     }
 
     .tagline {
         font-family: var(--font-mono);
-        font-size: 0.85rem;
+        font-size: 0.65rem;
         color: var(--text-secondary);
-        letter-spacing: 0.3em;
-        margin-top: 0.5rem;
+        letter-spacing: 0.2em;
     }
 
     .tech-stack {
@@ -720,40 +700,74 @@ st.markdown("""
     }
 
     /* ═══════════════════════════════════════════════════════════════════════
-       SIDEBAR
+       SIDEBAR - FIXED NAVIGATION
        ═══════════════════════════════════════════════════════════════════════ */
     [data-testid="stSidebar"] {
         background: var(--bg-panel) !important;
-        border-right: 1px solid var(--border-subtle);
+        border-right: 1px solid var(--border-subtle) !important;
+        min-width: 220px !important;
+        width: 220px !important;
     }
 
-    [data-testid="stSidebar"]::before {
-        content: "◎ SYSTEM CONFIG";
-        display: block;
-        font-family: var(--font-display);
-        font-size: 0.7rem;
-        color: var(--phosphor-amber);
-        letter-spacing: 0.2em;
-        padding: 1rem 1rem 0.5rem 1rem;
-        border-bottom: 1px solid var(--border-subtle);
-        margin-bottom: 1rem;
+    [data-testid="stSidebar"] > div:first-child {
+        background: var(--bg-panel) !important;
+        padding-top: 1rem !important;
     }
 
-    [data-testid="stSidebar"] .stMarkdown {
-        color: var(--text-primary);
+    /* Hide collapse button - sidebar always visible */
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="stSidebarCollapseButton"],
+    button[kind="header"],
+    .stSidebar button[data-testid="baseButton-header"],
+    [data-testid="stSidebar"] button[data-testid="baseButton-header"] {
+        display: none !important;
+        visibility: hidden !important;
     }
 
-    /* Sidebar headings */
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3 {
+    /* Ensure sidebar stays expanded */
+    [data-testid="stSidebar"][aria-expanded="false"] {
+        display: block !important;
+        width: 220px !important;
+        min-width: 220px !important;
+        transform: none !important;
+        visibility: visible !important;
+    }
+
+    /* Sidebar navigation buttons */
+    [data-testid="stSidebar"] .stButton > button {
+        width: 100% !important;
+        justify-content: flex-start !important;
+        padding: 0.8rem 1rem !important;
+        margin-bottom: 0.3rem !important;
         font-family: var(--font-display) !important;
-        color: var(--phosphor-amber) !important;
         font-size: 0.75rem !important;
-        letter-spacing: 0.15em;
-        border-bottom: 1px solid var(--border-subtle);
-        padding-bottom: 0.5rem;
-        margin-top: 1.5rem;
+        letter-spacing: 0.1em !important;
+        border-radius: 0 !important;
+        border: 1px solid var(--border-subtle) !important;
+        background: transparent !important;
+        color: var(--text-secondary) !important;
+    }
+
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background: var(--bg-hover) !important;
+        color: var(--phosphor-amber) !important;
+        border-color: var(--phosphor-amber) !important;
+    }
+
+    [data-testid="stSidebar"] .stButton > button[kind="primary"] {
+        background: var(--phosphor-amber) !important;
+        color: var(--bg-void) !important;
+        border-color: var(--phosphor-amber) !important;
+    }
+
+    [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
+        box-shadow: 0 0 15px var(--phosphor-amber-glow) !important;
+    }
+
+    /* Hide default sidebar nav */
+    [data-testid="stSidebarNav"] {
+        display: none !important;
     }
 
     /* ═══════════════════════════════════════════════════════════════════════
@@ -1538,6 +1552,70 @@ if "engine" not in st.session_state:
     st.session_state.engine = None
 if "ratings" not in st.session_state:
     st.session_state.ratings = {}
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "GENERATE"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SIDEBAR NAVIGATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+with st.sidebar:
+    # Sidebar logo
+    st.markdown("""
+    <div style="text-align: center; padding: 1rem 0 1.5rem 0; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1.5rem;">
+        <div style="font-family: var(--font-display); font-size: 1.2rem; font-weight: 900; color: var(--phosphor-amber); letter-spacing: 0.1em; text-shadow: 0 0 10px var(--phosphor-amber-glow);">
+            ◎ LOOPISM
+        </div>
+        <div style="font-family: var(--font-mono); font-size: 0.55rem; color: var(--text-dim); letter-spacing: 0.15em; margin-top: 0.3rem;">
+            MISSION CONTROL
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Main navigation buttons
+    st.markdown("""
+    <div style="font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-dim); letter-spacing: 0.15em; margin-bottom: 0.5rem; padding-left: 0.5rem;">
+        MAIN
+    </div>
+    """, unsafe_allow_html=True)
+
+    nav_options = ["GENERATE", "LEARNING", "RATINGS", "SESSIONS"]
+
+    for nav_option in nav_options:
+        current = st.session_state.current_page
+        if current == "LEARNING HISTORY":
+            current = "LEARNING"
+        is_active = current == nav_option
+
+        if st.button(
+            f"◎ {nav_option}",
+            key=f"sidenav_{nav_option}",
+            use_container_width=True,
+            type="primary" if is_active else "secondary"
+        ):
+            st.session_state.current_page = nav_option
+            st.rerun()
+
+    # Account section
+    st.markdown("""
+    <div style="font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-dim); letter-spacing: 0.15em; margin: 1.5rem 0 0.5rem 0; padding-left: 0.5rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+        ACCOUNT
+    </div>
+    """, unsafe_allow_html=True)
+
+    account_options = ["PROFILE", "SETTINGS", "BILLING"]
+
+    for nav_option in account_options:
+        is_active = st.session_state.current_page == nav_option
+
+        if st.button(
+            f"◎ {nav_option}",
+            key=f"sidenav_{nav_option}",
+            use_container_width=True,
+            type="primary" if is_active else "secondary"
+        ):
+            st.session_state.current_page = nav_option
+            st.rerun()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # HEADER
@@ -1545,267 +1623,27 @@ if "ratings" not in st.session_state:
 
 st.markdown("""
 <div class="mission-header">
-    <div class="logo-text">LOOPISM</div>
-    <div class="tagline">SELF-IMPROVING AUDIO GENERATION SYSTEM</div>
-    <div class="tech-stack">
-        <span class="tech-badge active">W&B WEAVE</span>
-        <span class="tech-badge active">REPLICATE</span>
-        <span class="tech-badge active">SELF-REFINE</span>
-    </div>
+    <div class="logo-text">◎ LOOPISM</div>
+    <div class="tagline">SELF-IMPROVING AUDIO GENERATION</div>
 </div>
 """, unsafe_allow_html=True)
 
-# Learning Status Badge
-try:
-    badge_stats = get_local_stats()
-    if badge_stats['total_patterns'] > 0:
-        st.markdown(f"""
-        <div style="text-align: center;">
-            <span class="learning-badge">
-                LEARNING ACTIVE • {badge_stats['total_patterns']} PATTERNS LEARNED
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div style="text-align: center;">
-            <span class="learning-badge" style="border-color: var(--warning); color: var(--warning); background: rgba(255, 170, 0, 0.1);">
-                🧠 LEARNING READY • AWAITING FIRST SESSION
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
-except Exception:
-    pass
+
+# Get API keys for use in pages
+replicate_key = os.environ.get("REPLICATE_API_TOKEN", "")
+openai_key = os.environ.get("OPENAI_API_KEY", "")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# MAIN TABS
+# PAGE: GENERATE
 # ═══════════════════════════════════════════════════════════════════════════════
 
-tab_generate, tab_learning, tab_ratings, tab_sessions = st.tabs([
-    "◎ GENERATE",
-    "◎ LEARNING HISTORY",
-    "◎ RATINGS",
-    "◎ SESSIONS"
-])
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# TAB 1: GENERATE
-# ═══════════════════════════════════════════════════════════════════════════════
-
-with tab_generate:
-    # ═══════════════════════════════════════════════════════════════════════════════
-    # INTELLIGENCE DASHBOARD
-    # ═══════════════════════════════════════════════════════════════════════════════
-
-    with st.expander("🧠 INTELLIGENCE DASHBOARD", expanded=False):
-        try:
-            # Use local storage stats
-            intel_stats = get_local_stats()
-
-            if intel_stats['total_patterns'] > 0:
-                # Metrics Grid
-                st.markdown("""
-                <div class="intel-dashboard">
-                    <div class="intel-grid">
-                """, unsafe_allow_html=True)
-
-                col1, col2, col3, col4 = st.columns(4)
-
-                with col1:
-                    st.markdown(f"""
-                    <div class="intel-card">
-                        <div class="intel-value">{intel_stats['total_patterns']}</div>
-                        <div class="intel-label">Patterns Learned</div>
-                        <div class="intel-delta positive">ready to use</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                with col2:
-                    st.markdown(f"""
-                    <div class="intel-card">
-                        <div class="intel-value">{intel_stats['avg_score']}</div>
-                        <div class="intel-label">Avg Score</div>
-                        <div class="intel-delta">out of 100</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                with col3:
-                    rating_display = f"{intel_stats['avg_rating']}" if intel_stats['avg_rating'] > 0 else "—"
-                    st.markdown(f"""
-                    <div class="intel-card">
-                        <div class="intel-value">{rating_display}</div>
-                        <div class="intel-label">User Rating</div>
-                        <div class="intel-delta">out of 5</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                with col4:
-                    st.markdown(f"""
-                    <div class="intel-card">
-                        <div class="intel-value">{intel_stats['times_reused']}</div>
-                        <div class="intel-label">Times Reused</div>
-                        <div class="intel-delta">as examples</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                st.markdown("</div>", unsafe_allow_html=True)
-
-                # Top Patterns
-                if intel_stats['top_patterns']:
-                    st.markdown("""
-                    <div class="intel-patterns">
-                        <div class="intel-pattern-title">◎ TOP LEARNED PATTERNS</div>
-                    """, unsafe_allow_html=True)
-
-                    for pattern in intel_stats['top_patterns'][:3]:
-                        initial = pattern.get('initial_prompt', '')[:30] + "..." if len(pattern.get('initial_prompt', '')) > 30 else pattern.get('initial_prompt', '')
-                        refined = pattern.get('refined_prompt', '')[:50] + "..." if len(pattern.get('refined_prompt', '')) > 50 else pattern.get('refined_prompt', '')
-                        score = pattern.get('auto_score', 0)
-                        st.markdown(f"""
-                        <div class="intel-pattern-item">
-                            "{initial}" → "{refined}"
-                            <span class="intel-pattern-score">{score:.0f}/100</span>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                    st.markdown("</div>", unsafe_allow_html=True)
-
-                # Top Keywords
-                if intel_stats['top_keywords']:
-                    st.markdown('<div class="intel-patterns"><div class="intel-pattern-title">◎ TOP KEYWORDS</div></div>', unsafe_allow_html=True)
-                    st.markdown('<div class="intel-keywords">', unsafe_allow_html=True)
-                    for kw in intel_stats['top_keywords'][:8]:
-                        st.markdown(f'<span class="intel-keyword">{kw["word"]} ({kw["count"]})</span>', unsafe_allow_html=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-
-                st.markdown("</div>", unsafe_allow_html=True)
-
-            else:
-                st.markdown("""
-                <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                    <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">🧠</p>
-                    <p>No patterns learned yet.</p>
-                    <p style="font-size: 0.8rem; color: var(--text-dim);">
-                        Generate audio and rate iterations to teach the system.
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-
-        except Exception as e:
-            st.markdown(f"""
-            <div style="text-align: center; padding: 2rem; color: var(--text-dim);">
-                Learning system initializing...
-            </div>
-            """, unsafe_allow_html=True)
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# SIDEBAR
-# ═══════════════════════════════════════════════════════════════════════════════
-
-with st.sidebar:
-    # ═══════════════════════════════════════════════════════════════
-    # API STATUS
-    # ═══════════════════════════════════════════════════════════════
-    st.markdown("### CONNECTIONS")
-
-    replicate_key = os.environ.get("REPLICATE_API_TOKEN", "")
-    openai_key = os.environ.get("OPENAI_API_KEY", "")
-    wandb_key = os.environ.get("WANDB_API_KEY", "")
-    weave_project = os.environ.get("WEAVE_PROJECT", "loopism-audio-refinement")
-
-    # Show status indicators
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if replicate_key:
-            st.markdown('<span class="status-online">REPLICATE</span>', unsafe_allow_html=True)
-        else:
-            st.markdown('<span class="status-online status-offline">REPLICATE</span>', unsafe_allow_html=True)
-    with col2:
-        if openai_key:
-            st.markdown('<span class="status-online">OPENAI</span>', unsafe_allow_html=True)
-        else:
-            st.markdown('<span class="status-online status-offline">OPENAI</span>', unsafe_allow_html=True)
-    with col3:
-        if wandb_key:
-            st.markdown('<span class="status-online">WEAVE</span>', unsafe_allow_html=True)
-        else:
-            st.markdown('<span class="status-online status-offline">WEAVE</span>', unsafe_allow_html=True)
-
-    # API Key inputs if not set
-    if not replicate_key:
-        replicate_key = st.text_input("REPLICATE TOKEN", type="password", key="rep_key")
-        if replicate_key:
-            os.environ["REPLICATE_API_TOKEN"] = replicate_key
-            st.rerun()
-
-    if not openai_key:
-        openai_key = st.text_input("OPENAI KEY", type="password", key="oai_key")
-        if openai_key:
-            os.environ["OPENAI_API_KEY"] = openai_key
-            st.rerun()
-
-    st.markdown("---")
-
-    # ═══════════════════════════════════════════════════════════════
-    # LEARNING STATS (Local Storage)
-    # ═══════════════════════════════════════════════════════════════
-    st.markdown("### LEARNING STATS")
-
-    # Get stats from local storage
-    local_stats = get_local_stats()
-
-    st.markdown(f"""
-    <div style="background: var(--bg-elevated); padding: 0.8rem; margin-bottom: 0.5rem; border-left: 2px solid var(--success);">
-        <div style="font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em;">PATTERNS LEARNED</div>
-        <div style="font-size: 1.2rem; color: var(--success); font-family: var(--font-display);">{local_stats['total_patterns']}</div>
-    </div>
-    <div style="background: var(--bg-elevated); padding: 0.8rem; margin-bottom: 0.5rem; border-left: 2px solid var(--cyan-electric);">
-        <div style="font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em;">TIMES REUSED</div>
-        <div style="font-size: 1.2rem; color: var(--cyan-electric); font-family: var(--font-display);">{local_stats['times_reused']}</div>
-    </div>
-    <div style="background: var(--bg-elevated); padding: 0.8rem; margin-bottom: 0.5rem; border-left: 2px solid var(--phosphor-amber);">
-        <div style="font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em;">AVG SCORE</div>
-        <div style="font-size: 1.2rem; color: var(--phosphor-amber); font-family: var(--font-display);">{local_stats['avg_score']}</div>
-    </div>
-    <div style="background: var(--bg-elevated); padding: 0.8rem; margin-bottom: 0.5rem; border-left: 2px solid var(--warning);">
-        <div style="font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em;">USER RATINGS</div>
-        <div style="font-size: 1.2rem; color: var(--warning); font-family: var(--font-display);">{local_stats['total_ratings']} ({local_stats['avg_rating']} avg)</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Top Keywords
-    if local_stats['top_keywords']:
-        st.markdown("""
-        <div style="font-size: 0.65rem; color: var(--text-dim); letter-spacing: 0.1em; margin: 0.8rem 0 0.3rem 0;">TOP KEYWORDS</div>
-        """, unsafe_allow_html=True)
-        keywords_html = " ".join([
-            f'<span style="background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.3); padding: 0.2rem 0.4rem; font-size: 0.65rem; color: var(--success); margin-right: 0.3rem; margin-bottom: 0.3rem; display: inline-block;">{kw["word"]}</span>'
-            for kw in local_stats['top_keywords'][:5]
-        ])
-        st.markdown(f'<div style="margin-bottom: 0.5rem;">{keywords_html}</div>', unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    # ═══════════════════════════════════════════════════════════════
-    # HOW IT WORKS
-    # ═══════════════════════════════════════════════════════════════
-    st.markdown("### HOW IT WORKS")
-    st.markdown("""
-    <div style="font-size: 0.7rem; color: var(--text-dim); line-height: 1.6;">
-        <strong style="color: var(--phosphor-amber);">Self-Refine:</strong> Each iteration critiques and improves the prompt, scored by AI judge.<br><br>
-        <strong style="color: var(--success);">Auto-Learning:</strong> High-scoring refinements (≥75) are automatically saved for future use.<br><br>
-        <strong style="color: var(--cyan-electric);">Your Ratings:</strong> Rate clips to teach the system — 4+ star ratings boost patterns.<br><br>
-        <strong style="color: var(--warning);">Few-Shot:</strong> Past successes are used as examples for new generations.
-    </div>
-    """, unsafe_allow_html=True)
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# MAIN CONTENT (inside tab_generate)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-with tab_generate:
+if st.session_state.current_page == "GENERATE":
     # Mission Input Panel
-    st.markdown('<div class="mission-input-panel">', unsafe_allow_html=True)
+    st.markdown("""
+    <div style="font-family: var(--font-display); font-size: 0.7rem; color: var(--cyan-electric); letter-spacing: 0.15em; margin-bottom: 0.5rem;">
+        ◎ DESCRIBE YOUR AUDIO
+    </div>
+    """, unsafe_allow_html=True)
 
     col1, col2 = st.columns([5, 1])
 
@@ -1826,8 +1664,6 @@ with tab_generate:
             use_container_width=True,
             disabled=not can_run
         )
-
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # Quick Launch Buttons (below search bar)
     st.markdown("""
@@ -1856,10 +1692,8 @@ with tab_generate:
     # ═══════════════════════════════════════════════════════════════════════════════
 
     st.markdown("""
-    <div style="margin-top: 1.5rem; padding: 1rem; background: var(--bg-panel); border: 1px solid var(--border-subtle); position: relative;">
-        <div style="position: absolute; top: -0.6rem; left: 1rem; background: var(--bg-panel); padding: 0 0.5rem; font-family: var(--font-display); font-size: 0.65rem; color: var(--cyan-electric); letter-spacing: 0.2em;">
-            ◎ GENERATION CONFIG
-        </div>
+    <div style="font-family: var(--font-display); font-size: 0.7rem; color: var(--cyan-electric); letter-spacing: 0.15em; margin: 1.5rem 0 0.5rem 0;">
+        ◎ GENERATION CONFIG
     </div>
     """, unsafe_allow_html=True)
 
@@ -2147,15 +1981,15 @@ with tab_generate:
             """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 2: LEARNING HISTORY
+# PAGE: LEARNING
 # ═══════════════════════════════════════════════════════════════════════════════
 
-with tab_learning:
+if st.session_state.current_page == "LEARNING" or st.session_state.current_page == "LEARNING HISTORY":
     st.markdown("""
     <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem;">
-        <h2 style="font-family: var(--font-display); color: var(--phosphor-amber); margin: 0;">LEARNED PATTERNS</h2>
+        <h2 style="font-family: var(--font-display); color: var(--phosphor-amber); margin: 0;">LEARNING SYSTEM</h2>
         <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
-            All refinements that scored high or received positive ratings
+            Intelligence dashboard and learned refinement patterns
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -2163,16 +1997,120 @@ with tab_learning:
     patterns = get_all_patterns()
     local_stats = get_local_stats()
 
-    # Stats row
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Total Patterns", local_stats['total_patterns'])
-    with col2:
-        st.metric("Avg Score", local_stats['avg_score'])
-    with col3:
-        st.metric("Times Reused", local_stats['times_reused'])
-    with col4:
-        st.metric("Avg Rating", local_stats['avg_rating'])
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # INTELLIGENCE DASHBOARD
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    try:
+        intel_stats = get_local_stats()
+
+        if intel_stats['total_patterns'] > 0:
+            # Metrics Grid
+            st.markdown("""
+            <div class="intel-dashboard">
+                <div class="intel-grid">
+            """, unsafe_allow_html=True)
+
+            col1, col2, col3, col4 = st.columns(4)
+
+            with col1:
+                st.markdown(f"""
+                <div class="intel-card">
+                    <div class="intel-value">{intel_stats['total_patterns']}</div>
+                    <div class="intel-label">Patterns Learned</div>
+                    <div class="intel-delta positive">ready to use</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col2:
+                st.markdown(f"""
+                <div class="intel-card">
+                    <div class="intel-value">{intel_stats['avg_score']}</div>
+                    <div class="intel-label">Avg Score</div>
+                    <div class="intel-delta">out of 100</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col3:
+                rating_display = f"{intel_stats['avg_rating']}" if intel_stats['avg_rating'] > 0 else "—"
+                st.markdown(f"""
+                <div class="intel-card">
+                    <div class="intel-value">{rating_display}</div>
+                    <div class="intel-label">User Rating</div>
+                    <div class="intel-delta">out of 5</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col4:
+                st.markdown(f"""
+                <div class="intel-card">
+                    <div class="intel-value">{intel_stats['times_reused']}</div>
+                    <div class="intel-label">Times Reused</div>
+                    <div class="intel-delta">as examples</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # Top Patterns
+            if intel_stats['top_patterns']:
+                st.markdown("""
+                <div class="intel-patterns">
+                    <div class="intel-pattern-title">◎ TOP LEARNED PATTERNS</div>
+                """, unsafe_allow_html=True)
+
+                for pattern in intel_stats['top_patterns'][:3]:
+                    initial = pattern.get('initial_prompt', '')[:30] + "..." if len(pattern.get('initial_prompt', '')) > 30 else pattern.get('initial_prompt', '')
+                    refined = pattern.get('refined_prompt', '')[:50] + "..." if len(pattern.get('refined_prompt', '')) > 50 else pattern.get('refined_prompt', '')
+                    score = pattern.get('auto_score', 0)
+                    st.markdown(f"""
+                    <div class="intel-pattern-item">
+                        "{initial}" → "{refined}"
+                        <span class="intel-pattern-score">{score:.0f}/100</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            # Top Keywords
+            if intel_stats['top_keywords']:
+                st.markdown('<div class="intel-patterns"><div class="intel-pattern-title">◎ TOP KEYWORDS</div></div>', unsafe_allow_html=True)
+                st.markdown('<div class="intel-keywords">', unsafe_allow_html=True)
+                for kw in intel_stats['top_keywords'][:8]:
+                    st.markdown(f'<span class="intel-keyword">{kw["word"]} ({kw["count"]})</span>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        else:
+            st.markdown("""
+            <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                <p style="font-size: 1.5rem; margin-bottom: 0.5rem;">🧠</p>
+                <p>No patterns learned yet.</p>
+                <p style="font-size: 0.8rem; color: var(--text-dim);">
+                    Generate audio and rate iterations to teach the system.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+    except Exception as e:
+        st.markdown(f"""
+        <div style="text-align: center; padding: 2rem; color: var(--text-dim);">
+            Learning system initializing...
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # LEARNED PATTERNS LIST
+    # ═══════════════════════════════════════════════════════════════════════════════
+
+    st.markdown("""
+    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
+        <div style="font-family: var(--font-display); font-size: 0.8rem; color: var(--phosphor-amber); letter-spacing: 0.15em; margin-bottom: 1rem;">
+            ◎ ALL LEARNED PATTERNS
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     if patterns:
         patterns_sorted = sorted(patterns, key=lambda x: x.get("auto_score", 0), reverse=True)
@@ -2200,10 +2138,10 @@ with tab_learning:
         st.info("No patterns learned yet. Generate audio to start learning.")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 3: RATINGS
+# PAGE: RATINGS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-with tab_ratings:
+if st.session_state.current_page == "RATINGS":
     st.markdown("""
     <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem;">
         <h2 style="font-family: var(--font-display); color: var(--phosphor-amber); margin: 0;">USER FEEDBACK</h2>
@@ -2250,10 +2188,10 @@ with tab_ratings:
         st.info("No ratings yet. Generate audio and rate clips to see your feedback history.")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 4: SESSIONS
+# PAGE: SESSIONS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-with tab_sessions:
+if st.session_state.current_page == "SESSIONS":
     st.markdown("""
     <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem;">
         <h2 style="font-family: var(--font-display); color: var(--phosphor-amber); margin: 0;">GENERATION SESSIONS</h2>
@@ -2298,6 +2236,225 @@ with tab_sessions:
             """, unsafe_allow_html=True)
     else:
         st.info("No sessions yet. Generate audio to see your session history.")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAGE: PROFILE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+if st.session_state.current_page == "PROFILE":
+    st.markdown("""
+    <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h2 style="font-family: var(--font-display); color: var(--phosphor-amber); margin: 0;">USER PROFILE</h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
+            Manage your account information and preferences
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Profile form
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("""
+        <div style="font-family: var(--font-display); font-size: 0.7rem; color: var(--cyan-electric); letter-spacing: 0.15em; margin-bottom: 0.5rem;">
+            ◎ PERSONAL INFORMATION
+        </div>
+        """, unsafe_allow_html=True)
+
+        profile_name = st.text_input("Display Name", value="", placeholder="Enter your name", key="profile_name")
+        profile_email = st.text_input("Email Address", value="", placeholder="you@example.com", key="profile_email")
+        profile_username = st.text_input("Username", value="", placeholder="@username", key="profile_username")
+        profile_bio = st.text_area("Bio", value="", placeholder="Tell us about yourself...", height=100, key="profile_bio")
+
+    with col2:
+        st.markdown("""
+        <div style="font-family: var(--font-display); font-size: 0.7rem; color: var(--cyan-electric); letter-spacing: 0.15em; margin-bottom: 0.5rem;">
+            ◎ PREFERENCES
+        </div>
+        """, unsafe_allow_html=True)
+
+        profile_timezone = st.selectbox("Timezone", ["UTC", "America/New_York", "America/Los_Angeles", "Europe/London", "Asia/Tokyo"], key="profile_timezone")
+        profile_language = st.selectbox("Language", ["English", "Spanish", "French", "German", "Japanese"], key="profile_language")
+        profile_newsletter = st.checkbox("Receive newsletter updates", value=True, key="profile_newsletter")
+        profile_public = st.checkbox("Make profile public", value=False, key="profile_public")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if st.button("◎ SAVE PROFILE", type="primary"):
+        st.success("Profile updated successfully!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAGE: SETTINGS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+if st.session_state.current_page == "SETTINGS":
+    st.markdown("""
+    <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h2 style="font-family: var(--font-display); color: var(--phosphor-amber); margin: 0;">SETTINGS</h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
+            Configure application preferences and behavior
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Audio Settings
+    st.markdown("""
+    <div style="font-family: var(--font-display); font-size: 0.7rem; color: var(--cyan-electric); letter-spacing: 0.15em; margin-bottom: 0.5rem;">
+        ◎ AUDIO GENERATION
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        default_duration = st.slider("Default Audio Duration (sec)", min_value=3, max_value=15, value=5, key="settings_duration")
+        default_iterations = st.slider("Default Iterations", min_value=2, max_value=5, value=3, key="settings_iterations")
+
+    with col2:
+        audio_quality = st.selectbox("Audio Quality", ["Standard", "High", "Maximum"], key="settings_quality")
+        output_format = st.selectbox("Output Format", ["WAV", "MP3", "FLAC"], key="settings_format")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Learning Settings
+    st.markdown("""
+    <div style="font-family: var(--font-display); font-size: 0.7rem; color: var(--cyan-electric); letter-spacing: 0.15em; margin-bottom: 0.5rem;">
+        ◎ LEARNING SYSTEM
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        auto_learn = st.checkbox("Enable automatic learning", value=True, key="settings_auto_learn")
+        min_score = st.slider("Minimum score to learn", min_value=50, max_value=95, value=75, key="settings_min_score")
+
+    with col2:
+        save_examples = st.checkbox("Save examples for future use", value=True, key="settings_save_examples")
+        max_patterns = st.number_input("Maximum stored patterns", min_value=10, max_value=500, value=100, key="settings_max_patterns")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Interface Settings
+    st.markdown("""
+    <div style="font-family: var(--font-display); font-size: 0.7rem; color: var(--cyan-electric); letter-spacing: 0.15em; margin-bottom: 0.5rem;">
+        ◎ INTERFACE
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        show_visualizer = st.checkbox("Show audio visualizer", value=True, key="settings_visualizer")
+        show_critique = st.checkbox("Auto-expand critique details", value=False, key="settings_critique")
+
+    with col2:
+        theme = st.selectbox("Theme", ["Dark (Default)", "Darker", "Midnight"], key="settings_theme")
+        compact_mode = st.checkbox("Compact mode", value=False, key="settings_compact")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    if st.button("◎ SAVE SETTINGS", type="primary"):
+        st.success("Settings saved successfully!")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PAGE: BILLING
+# ═══════════════════════════════════════════════════════════════════════════════
+
+if st.session_state.current_page == "BILLING":
+    st.markdown("""
+    <div style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <h2 style="font-family: var(--font-display); color: var(--phosphor-amber); margin: 0;">BILLING</h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
+            Manage your subscription and payment methods
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Current Plan
+    st.markdown("""
+    <div style="font-family: var(--font-display); font-size: 0.7rem; color: var(--cyan-electric); letter-spacing: 0.15em; margin-bottom: 0.5rem;">
+        ◎ CURRENT PLAN
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div style="background: var(--bg-panel); border: 1px solid var(--success); padding: 1.5rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <div style="font-family: var(--font-display); font-size: 1.2rem; color: var(--success);">PRO PLAN</div>
+                <div style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.3rem;">
+                    Unlimited generations • Priority processing • Advanced learning
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-family: var(--font-display); font-size: 1.5rem; color: var(--phosphor-amber);">$29</div>
+                <div style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-dim);">/month</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Usage Stats
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Generations This Month", "47")
+    with col2:
+        st.metric("API Credits Used", "2,340")
+    with col3:
+        st.metric("Next Billing Date", "Mar 1, 2026")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Payment Method
+    st.markdown("""
+    <div style="font-family: var(--font-display); font-size: 0.7rem; color: var(--cyan-electric); letter-spacing: 0.15em; margin-bottom: 0.5rem;">
+        ◎ PAYMENT METHOD
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        card_number = st.text_input("Card Number", value="", placeholder="•••• •••• •••• 4242", key="billing_card")
+        card_name = st.text_input("Name on Card", value="", placeholder="John Doe", key="billing_name")
+
+    with col2:
+        col2a, col2b = st.columns(2)
+        with col2a:
+            card_expiry = st.text_input("Expiry", value="", placeholder="MM/YY", key="billing_expiry")
+        with col2b:
+            card_cvc = st.text_input("CVC", value="", placeholder="•••", key="billing_cvc")
+        billing_country = st.selectbox("Country", ["United States", "Canada", "United Kingdom", "Germany", "France", "Japan", "Australia"], key="billing_country")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Billing Address
+    st.markdown("""
+    <div style="font-family: var(--font-display); font-size: 0.7rem; color: var(--cyan-electric); letter-spacing: 0.15em; margin-bottom: 0.5rem;">
+        ◎ BILLING ADDRESS
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        billing_address = st.text_input("Street Address", value="", placeholder="123 Main St", key="billing_address")
+        billing_city = st.text_input("City", value="", placeholder="San Francisco", key="billing_city")
+
+    with col2:
+        billing_state = st.text_input("State / Province", value="", placeholder="California", key="billing_state")
+        billing_zip = st.text_input("ZIP / Postal Code", value="", placeholder="94102", key="billing_zip")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([2, 2, 1])
+    with col1:
+        if st.button("◎ UPDATE PAYMENT", type="primary"):
+            st.success("Payment method updated successfully!")
+    with col2:
+        if st.button("◎ VIEW INVOICES", type="secondary"):
+            st.info("Invoice history would appear here.")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # FOOTER

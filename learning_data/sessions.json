@@ -1,0 +1,52 @@
+[
+  {
+    "id": "loopism_1769968288",
+    "timestamp": "2026-02-01T11:08:46",
+    "initial_prompt": "happy summer vibes",
+    "final_prompt": "Upbeat tropical house track (120-125 BPM) featuring syncopated steel drums, bright digital synth plucks, and strummed acoustic guitar. Create a joyful atmosphere with an AABA structure, dynamic build-up, and layered conga rhythms in C major.",
+    "iterations": 3,
+    "total_time": 65.53,
+    "avg_score": 82.6,
+    "patterns_learned": 3
+  },
+  {
+    "id": "loopism_1769968366",
+    "timestamp": "2026-02-01T11:24:19",
+    "initial_prompt": "epic cinematic trailer",
+    "final_prompt": "Epic cinematic trailer music in orchestral style, featuring legato violins, staccato cellos, bold trumpets, and thunderous timpani. Tempo 120-140 BPM, triumphant mood. Structure: 15s intro, 30s build-up, 30s powerful climax, 15s soft outro in C major.",
+    "iterations": 3,
+    "total_time": 141.96,
+    "avg_score": 82.8,
+    "patterns_learned": 3
+  },
+  {
+    "id": "loopism_1769968519",
+    "timestamp": "2026-02-01T11:47:37",
+    "initial_prompt": "chill lofi study beats",
+    "final_prompt": "Chill lofi study beats with smooth Rhodes electric piano and soft vinyl crackle, 70-80 BPM, introspective mood, 16-bar intro, gradual build, soft outro in C major, featuring subtle upright bass and mellow brush drum samples for a warm texture.",
+    "iterations": 3,
+    "total_time": 66.01,
+    "avg_score": 84.5,
+    "patterns_learned": 3
+  },
+  {
+    "id": "loopism_1769968597",
+    "timestamp": "2026-02-01T12:15:39",
+    "initial_prompt": "energetic workout music",
+    "final_prompt": "High-energy progressive house workout music at 128-135 BPM featuring driving synth bass, punchy kick drum, bright sawtooth leads, uplifting chords in C major, layered with claps and vocal chops. Structure: 16-bar intro, 32-bar build-up, 16-bar drop, 8-bar outro. Mood: exhilarating.",
+    "iterations": 3,
+    "total_time": 51.57,
+    "avg_score": 88.0,
+    "patterns_learned": 3
+  },
+  {
+    "id": "loopism_1769968659",
+    "timestamp": "2026-02-01T12:42:55",
+    "initial_prompt": "ambient night atmosphere",
+    "final_prompt": "Create a dreamy ambient track at 60-70 BPM in C major, featuring a soft grand piano with the sustain pedal, lush reverb-drenched synth pads, and subtle field recordings. Structure: 16-bar intro, 32-bar build, and a tranquil 16-bar outro.",
+    "iterations": 3,
+    "total_time": 67.73,
+    "avg_score": 86.3,
+    "patterns_learned": 3
+  }
+]
