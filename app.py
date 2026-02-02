@@ -2776,11 +2776,43 @@ if st.session_state.current_page == "PATTERNS":
                                 </div>
                             </div>
                             """, unsafe_allow_html=True)
-            
+
             st.markdown("---")
 
             # ═══════════════════════════════════════════════════════════════
-            # 5. LEARNING TIMELINE (recent traces with expandable details)
+            # 5. INTERACTIVE ANALYTICS (Marimo Notebook)
+            # ═══════════════════════════════════════════════════════════════
+
+            st.markdown("### ◊ INTERACTIVE ANALYTICS")
+            st.markdown('<div style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 1rem;">Deep-dive analysis with interactive charts and filters</div>', unsafe_allow_html=True)
+
+            analytics_cols = st.columns([2, 1])
+            with analytics_cols[0]:
+                st.markdown(f"""
+                <div style="background: var(--bg-elevated); border-left: 3px solid var(--cyan-electric); padding: 1rem;">
+                    <div style="font-size: 0.7rem; color: var(--text-secondary);">
+                        Interactive notebook with score trends, genre heatmaps, agent performance radar charts, and filtering controls.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with analytics_cols[1]:
+                if st.button("◈ Open Analytics Notebook", use_container_width=True):
+                    # Export learning data and launch notebook
+                    try:
+                        from marimo_analytics import export_learning_data
+                        export_learning_data()
+                        import subprocess
+                        subprocess.Popen(["marimo", "edit", "analysis_notebook.py"],
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        st.success("Analytics notebook launched!")
+                    except Exception as e:
+                        st.info("Run: `marimo edit analysis_notebook.py`")
+
+            st.markdown("---")
+
+            # ═══════════════════════════════════════════════════════════════
+            # 6. LEARNING TIMELINE (recent traces with expandable details)
             # ═══════════════════════════════════════════════════════════════
 
             st.markdown("### ◎ LEARNING TIMELINE")

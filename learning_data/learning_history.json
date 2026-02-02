@@ -34,5 +34,89 @@
       "iteration_num": 2,
       "auto_score": 91.0
     }
+  },
+  {
+    "id": "log_1769978581223",
+    "event_type": "rating_submitted",
+    "session_id": "unknown",
+    "prompt": "Upbeat tropical house track (120-125 BPM) featuring syncopated steel drums, bright digital synth plucks, and strummed acoustic guitar. Create a joyful atmosphere with an AABA structure, dynamic build-up, and layered conga rhythms in C major.",
+    "timestamp": "2026-02-01T12:43:01.223342",
+    "details": {
+      "rating": 5,
+      "iteration_num": 2,
+      "auto_score": 80.2
+    }
+  },
+  {
+    "id": "log_1769979186786",
+    "event_type": "rating_submitted",
+    "session_id": "unknown",
+    "prompt": "Upbeat tropical house track (120-125 BPM) featuring syncopated steel drums, bright digital synth plucks, and strummed acoustic guitar. Create a joyful atmosphere with an AABA structure, dynamic build-up, and layered conga rhythms in C major.",
+    "timestamp": "2026-02-01T12:53:06.786693",
+    "details": {
+      "rating": 4,
+      "iteration_num": 2,
+      "auto_score": 80.2
+    }
+  },
+  {
+    "id": "log_1769981610767",
+    "event_type": "rating_submitted",
+    "session_id": "unknown",
+    "prompt": "Upbeat tropical house track (120-125 BPM) featuring syncopated steel drums, bright digital synth plucks, and strummed acoustic guitar. Create a joyful atmosphere with an AABA structure, dynamic build-up, and layered conga rhythms in C major.",
+    "timestamp": "2026-02-01T13:33:30.767154",
+    "details": {
+      "rating": 5,
+      "iteration_num": 2,
+      "auto_score": 80.2
+    }
+  },
+  {
+    "id": "log_1769981845388",
+    "event_type": "rating_submitted",
+    "session_id": "unknown",
+    "prompt": "Upbeat tropical house track (120-125 BPM) featuring syncopated steel drums, bright digital synth plucks, and strummed acoustic guitar. Create a joyful atmosphere with an AABA structure, dynamic build-up, and layered conga rhythms in C major.",
+    "timestamp": "2026-02-01T13:37:25.388560",
+    "details": {
+      "rating": 3,
+      "iteration_num": 2,
+      "auto_score": 80.2
+    }
+  },
+  {
+    "id": "log_1769985011302",
+    "event_type": "rating_submitted",
+    "session_id": "unknown",
+    "prompt": "High-energy EDM dance track (128 BPM) with punchy four-on-the-floor kicks, sidechained bass drops, euphoric synth leads, and vocal chops. Build tension with risers leading to massive drops in A minor.",
+    "timestamp": "2026-02-01T14:30:11.302827",
+    "details": {
+      "rating": 4,
+      "iteration_num": 2,
+      "auto_score": 91.0
+    }
+  },
+  {
+    "id": "log_1769990270800",
+    "event_type": "rating_submitted",
+    "session_id": "unknown",
+    "prompt": "High-energy EDM dance track (128 BPM) with punchy four-on-the-floor kicks, sidechained bass drops, euphoric synth leads, and vocal chops. Build tension with risers leading to massive drops in A minor.",
+    "timestamp": "2026-02-01T15:57:50.800650",
+    "details": {
+      "rating": 4,
+      "iteration_num": 2,
+      "auto_score": 91.0
+    }
+  },
+  {
+    "id": "log_1769990972458",
+    "event_type": "rating_submitted",
+    "session_id": "unknown",
+    "prompt": "High-energy EDM dance track (128 BPM) with punchy four-on-the-floor kicks, sidechained bass drops, euphoric synth leads, and vocal chops. Build tension with risers leading to massive drops in A minor.",
+    "timestamp": "2026-02-01T16:09:32.458169",
+    "details": {
+      "rating": 4,
+      "iteration_num": 2,
+      "auto_score": 91.0
+    }
   }
 ]
